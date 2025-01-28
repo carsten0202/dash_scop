@@ -1,6 +1,8 @@
 
 import pandas as pd
 
+port = 61040
+
 rds_file = "testdata/20220818_brain_10x-test_rna-seurat.rds"
 csv_file = "testdata/20220818_brain_10x-test_rna-seurat.csv"
 
@@ -67,6 +69,6 @@ def update_plot(selected_columns):
     return fig
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(port=port, debug=True)
 
 
