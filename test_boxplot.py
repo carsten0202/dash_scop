@@ -1,6 +1,7 @@
 
 import pandas as pd
 
+host = "0.0.0.0"
 port = 61040
 
 rds_file = "testdata/20220818_brain_10x-test_rna-seurat.rds"
@@ -69,6 +70,6 @@ def update_plot(selected_columns):
     return fig
 
 if __name__ == "__main__":
-    app.run_server(port=port, debug=True)
+    app.run_server(port=port, host=host, debug=True)
 
 
