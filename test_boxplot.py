@@ -25,7 +25,7 @@ df = df.reset_index().melt(id_vars=["index"], value_vars=df.columns, var_name="G
 # 	print("Unable to read RDS file")
 
 import dash
-from dash import dcc, html, callback, Output, Input
+from dash import dcc, html, Output, Input
 import plotly.express as px
 
 
