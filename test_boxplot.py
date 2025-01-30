@@ -6,11 +6,13 @@ port = 61040
 
 rds_file = "testdata/20220818_brain_10x-test_rna-seurat.rds"
 csv_file = "testdata/20220818_brain_10x-test_rna-seurat.csv"
+met_file = "testdata/seurat_metadata.csv"
 
 df = pd.read_csv(csv_file, index_col="Unnamed: 0", usecols=range(26)).transpose()
+meta = pd.read_csv(met_file, index_col="Unnamed: 0")
 mygenes = df.columns
-df = df.reset_index().melt(id_vars=["index"], value_vars=df.columns, var_name="Gene", value_name="Counts")
-
+df = df.reset_index().melt(id_vars=["index"], value_vars=df.columns, var_name="Gene", value_name="Counts").set_index('index')
+df = df.join(meta[['condition_1','condition_2']], how='left')
 
 #import rpy2.robjects as ro
 #from rpy2.robjects import r
@@ -27,7 +29,6 @@ df = df.reset_index().melt(id_vars=["index"], value_vars=df.columns, var_name="G
 import dash
 from dash import dcc, html, Output, Input
 import plotly.express as px
-
 
 # Prep the Dash App
 app = dash.Dash(__name__)
@@ -58,12 +59,14 @@ def update_plot(selected_columns):
         return px.box(title="No data selected")
 
     stacked_df = df.loc[df['Gene'].isin(selected_columns)]
+    print(stacked_df)
 
     # Create the box plot with a logarithmic y-axis
     fig = px.box(
         stacked_df,
         x="Gene",
         y="Counts",
+        color="condition_1",
         title=f"Box and Whiskers Plot for {selected_columns}",
         log_y=True  # Logarithmic scale
     )

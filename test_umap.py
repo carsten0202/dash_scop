@@ -8,11 +8,15 @@ port = 61010
 
 rds_file = "testdata/20220818_brain_10x-test_rna-seurat.rds"
 csv_file = "testdata/umap_coordinates.csv"
+met_file = "testdata/seurat_metadata.csv"
 
 df = pd.read_csv(csv_file, index_col="Unnamed: 0")
-df[['column1', 'species']] = df.index.to_series().str.split('_', expand=True)
-species = df["species"].unique().tolist()
-options = [{"label": specie.capitalize(), "value": specie} for specie in species]
+meta = pd.read_csv(met_file, index_col="Unnamed: 0")
+df = df.join(meta[['condition_1','condition_2']], how='left')
+df['variable'] = df['condition_1'].astype(str) + "/" + df['condition_2']
+
+context = df['variable'].unique()
+options = [{'label': con, 'value': con} for con in context]
 
 app = Dash(__name__)
 
@@ -21,13 +25,12 @@ app.layout = html.Div(
         dcc.Checklist(
             options=options,
             inline=True,
-            value=species,
+            value=context,
             id="checklist",
         ),
         dcc.Graph(id="scatter"),
     ]
 )
-
 
 @app.callback(
     Output("scatter", "figure"),
@@ -35,10 +38,10 @@ app.layout = html.Div(
 )
 def update_figure(values):
     fig = px.scatter(
-        df[df["species"].isin(values)],
+        df[df["variable"].isin(values)],
         x="UMAP_1",
         y="UMAP_2",
-        color="species",
+        color="variable",
     )
     return fig
 
