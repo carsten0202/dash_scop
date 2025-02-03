@@ -9,7 +9,7 @@ csv_file = "testdata/20220818_brain_10x-test_rna-seurat.csv"
 met_file = "testdata/seurat_metadata.csv"
 
 meta = pd.read_csv(met_file, index_col="Unnamed: 0", usecols=["Unnamed: 0", "condition_1", "condition_2"])
-df = pd.read_csv(csv_file, index_col="Unnamed: 0", usecols=range(31)).transpose()
+df = pd.read_csv(csv_file, index_col="Unnamed: 0", usecols=lambda x: x not in ["RowNames"]).transpose()
 mygenes = df.columns
 df = df.reset_index().melt(id_vars=["index"], value_vars=df.columns, var_name="Gene", value_name="Counts").set_index('index')
 df = df.join(meta, on='index', how='left')
