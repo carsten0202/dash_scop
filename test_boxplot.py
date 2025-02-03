@@ -2,7 +2,7 @@
 import pandas as pd
 
 host = "0.0.0.0"
-port = 61040
+port = 61030
 
 rds_file = "testdata/20220818_brain_10x-test_rna-seurat.rds"
 csv_file = "testdata/20220818_brain_10x-test_rna-seurat.csv"
