@@ -10,7 +10,13 @@ rds_file = "testdata/20220818_brain_10x-test_rna-seurat.rds"
 csv_file = "testdata/umap_coordinates.csv"
 met_file = "testdata/seurat_metadata.csv"
 
-df = pd.read_csv(csv_file, index_col="Unnamed: 0")
+import scanpy as sc
+# Load the converted h5ad file
+adata = sc.read_h5ad("testdata/seurat_data.h5ad")
+df = pd.DataFrame(adata.obsm['X_umap'], adata.obs.index, columns=['UMAP_1', 'UMAP_2'])
+print(adata.obs)
+print(adata.obs['nCount_RNA'])
+
 meta = pd.read_csv(met_file, index_col="Unnamed: 0")
 df = df.join(meta[['condition_1','condition_2']], how='left')
 df['variable'] = df['condition_1'].astype(str) + "/" + df['condition_2']
