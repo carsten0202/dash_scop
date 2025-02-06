@@ -5,7 +5,6 @@ host = "0.0.0.0"
 port = 61040
 
 rds_file = "testdata/20220818_brain_10x-test_rna-seurat.rds"
-csv_file = "testdata/20220818_brain_10x-test_rna-seurat.csv"
 met_file = "testdata/seurat_metadata.csv"
 
 # Load the RDS file
