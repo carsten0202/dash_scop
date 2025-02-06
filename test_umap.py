@@ -6,19 +6,12 @@ from dash import Dash, dcc, html, Output, Input
 host = "0.0.0.0"
 port = 61010
 
-rds_file = "testdata/20220818_brain_10x-test_rna-seurat.rds"
 csv_file = "testdata/umap_coordinates.csv"
 met_file = "testdata/seurat_metadata.csv"
 
-import scanpy as sc
-# Load the converted h5ad file
-adata = sc.read_h5ad("testdata/seurat_data.h5ad")
-df = pd.DataFrame(adata.obsm['X_umap'], adata.obs.index, columns=['UMAP_1', 'UMAP_2'])
-print(adata.obs)
-print(adata.obs['nCount_RNA'])
-
-meta = pd.read_csv(met_file, index_col="Unnamed: 0")
-df = df.join(meta[['condition_1','condition_2']], how='left')
+df = pd.read_csv(csv_file, index_col="Unnamed: 0", usecols=['Unnamed: 0', 'UMAP_1', 'UMAP_2'])
+meta = pd.read_csv(met_file, index_col="Unnamed: 0", usecols=['Unnamed: 0', 'condition_1','condition_2'])
+df = df.join(meta, how='left')
 df['variable'] = df['condition_1'].astype(str) + "/" + df['condition_2']
 
 context = df['variable'].unique()
