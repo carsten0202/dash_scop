@@ -9,6 +9,18 @@ port = 61010
 rds_file = "testdata/20220818_brain_10x-test_rna-seurat.rds"
 met_file = "testdata/seurat_metadata.csv"
 
+# Load the RDS file
+from rpy2.robjects import r, pandas2ri
+pandas2ri.activate()
+try:
+	r_obj = r['readRDS'](rds_file)
+#	r_dgC = r['LayerData'](r_obj, assay = "SCT", layer = "counts")
+except Exception as e:
+	print(e)
+	print("Unable to read RDS file")
+
+r_df = x@reductions$umap@cell.embeddings
+
 import scanpy as sc
 # Load the converted h5ad file
 adata = sc.read_h5ad("testdata/seurat_data.h5ad")
