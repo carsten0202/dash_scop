@@ -4,32 +4,14 @@ import pandas as pd
 host = "0.0.0.0"
 port = 61040
 
-rds_file = "testdata/20220818_brain_10x-test_rna-seurat.rds"
 csv_file = "testdata/20220818_brain_10x-test_rna-seurat.csv"
 met_file = "testdata/seurat_metadata.csv"
 
-# Load the RDS file
-from rpy2.robjects import r
-from rpy2.robjects import pandas2ri
-try:
-	r_obj = r['readRDS'](rds_file)
-	r_dgC = r['LayerData'](r_obj, assay = "SCT", layer = "counts")
-except Exception as e:
-	print(e)
-	print("Unable to read RDS file")
-r_df  = r['as.data.frame'](r_dgC)
-pandas2ri.activate()
-df = pandas2ri.rpy2py(r_df).transpose()
-#df = pd.read_csv(csv_file, index_col="Unnamed: 0", usecols=lambda x: x not in ["RowNames"]).transpose()
+df = pd.read_csv(csv_file, index_col="Unnamed: 0", usecols=lambda x: x not in ["RowNames"]).transpose()
 mygenes = df.columns
 df = df.reset_index().melt(id_vars=["index"], value_vars=df.columns, var_name="Gene", value_name="Counts").set_index('index')
-
 meta = pd.read_csv(met_file, index_col="Unnamed: 0", usecols=["Unnamed: 0", "condition_1", "condition_2"])
 df = df.join(meta, on='index', how='left')
-
-#import rpy2.robjects as ro
-#with (ro.default_converter + pandas2ri.converter).context():
-#  df = ro.conversion.get_conversion().rpy2py(r_df)
 
 import dash
 from dash import dcc, html, Output, Input
