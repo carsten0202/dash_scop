@@ -35,10 +35,10 @@ app.layout = html.Div([
 
     # Selecting which metadata to show
     dcc.Checklist(
+        id="box-checklist",
         options=meta.columns,
         inline=True,
         value=[meta.columns[0]],
-        id="box-checklist",
     ),
 
     # Dropdown for selecting the variable
