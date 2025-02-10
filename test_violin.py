@@ -60,7 +60,6 @@ def update_plot(selected_columns):
     # Create the box plot with a logarithmic y-axis
     fig = px.violin(
         stacked_df,
-        box=True,
         color=color,
         points="all",
         title=Options["title"],
