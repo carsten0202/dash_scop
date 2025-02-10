@@ -35,10 +35,10 @@ app = Dash(__name__)
 app.layout = html.Div(
     [
         dcc.Checklist(
+            id="checklist",
             options=options,
             inline=True,
             value=context,
-            id="checklist",
         ),
         dcc.Graph(id="scatter"),
     ]
