@@ -14,9 +14,9 @@ rds_file = "testdata/20220818_brain_10x-test_rna-seurat.rds"
 csv_file = "testdata/20220818_brain_10x-test_rna-seurat.csv"
 
 df = pd.read_csv(csv_file, index_col="Unnamed: 0", usecols=lambda x: x not in ["RowNames"])
-#df = pd.read_csv(csv_file, index_col=0, usecols=range(11))
 df = df.reset_index().melt(id_vars=["index"], value_vars=df.columns, var_name=Options["x"], value_name=Options["y"])
-df[Options["y"]] = np.log10(df[Options["y"]]) # Logarithmic scale
+with np.errstate(divide='ignore'):
+    df[Options["y"]] = np.log10(df[Options["y"]]) # Logarithmic scale
 
 from dash import Dash, dcc, html, Output, Input
 import plotly.express as px
