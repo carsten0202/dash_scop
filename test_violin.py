@@ -52,7 +52,7 @@ app.layout = html.Div([
 def update_plot(selected_columns):
     # If no columns are selected, return an empty figure
     if not selected_columns:
-        return px.box(title="No data selected")
+        return px.violin(title="No data selected")
 
     stacked_df = df.loc[df[Options["x"]].isin(selected_columns)]
     color = stacked_df[Options["x"]]
