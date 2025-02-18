@@ -20,21 +20,18 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest",
-    "black",
-    "flake8",
+    "ruff",
     "mypy",
 ]
 
 [tool.setuptools]
 packages = ["src"]
 
-[tool.black]
+[tool.ruff]
 line-length = 88
-target-version = ['py312']
-
-[tool.flake8]
-max-line-length = 88
-exclude = [".venv", "tests/"]
+target-version = "py312"
+select = ["E", "F", "I"]  # Common linting rules
+fix = true  # Auto-fix linting errors on save
 
 [tool.mypy]
 python_version = "3.12"
