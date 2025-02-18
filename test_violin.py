@@ -1,6 +1,7 @@
-
-import pandas as pd
 import numpy as np
+import pandas as pd
+import plotly.express as px
+from dash import Dash, Input, Output, dcc, html
 
 Options = {
     "host": "0.0.0.0",
@@ -14,36 +15,35 @@ rds_file = "testdata/20220818_brain_10x-test_rna-seurat.rds"
 csv_file = "testdata/20220818_brain_10x-test_rna-seurat.csv"
 
 df = pd.read_csv(csv_file, index_col="Unnamed: 0", usecols=lambda x: x not in ["RowNames"])
-df = df.reset_index().melt(id_vars=["index"], value_vars=df.columns, var_name=Options["x"], value_name=Options["y"])
-with np.errstate(divide='ignore'):
-    df[Options["y"]] = np.log10(df[Options["y"]]) # Logarithmic scale
+df = df.reset_index().melt(
+    id_vars=["index"], value_vars=df.columns, var_name=Options["x"], value_name=Options["y"]
+)
+with np.errstate(divide="ignore"):
+    df[Options["y"]] = np.log10(df[Options["y"]])  # Logarithmic scale
 
-from dash import Dash, dcc, html, Output, Input
-import plotly.express as px
 
 # Dash App
 app = Dash(__name__)
 
 categories = df[Options["x"]].unique()
-app.layout = html.Div([
-    html.H1("Violin Plot in Dash & Plotly"),
+app.layout = html.Div(
+    [
+        html.H1("Violin Plot in Dash & Plotly"),
+        # Dropdown for selecting variables to plot
+        dcc.Dropdown(
+            id="violin-dropdown",
+            multi=True,  # Enable multiple selection
+            options=[{"label": col, "value": col} for col in categories],
+            placeholder="Select a column to plot",
+            value=categories[0:10],  # Default value
+        ),
+        # The Graph
+        dcc.Graph(
+            id="violin-plot",
+        ),
+    ]
+)
 
-    # Dropdown for selecting variables to plot
-    dcc.Dropdown(
-        id="violin-dropdown",
-        multi=True,  # Enable multiple selection
-        options=[
-            {"label": col, "value": col} for col in categories
-        ],
-        placeholder="Select a column to plot",
-        value=categories[0:10],  # Default value
-    ),
-
-    # The Graph
-    dcc.Graph(
-        id="violin-plot",
-    )
-])
 
 @app.callback(
     Output(component_id="violin-plot", component_property="figure"),
@@ -70,5 +70,5 @@ def update_plot(selected_columns):
 
 
 # Run Server
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run_server(host=Options["host"], port=Options["port"], debug=True)

@@ -28,7 +28,7 @@ dev = [
 packages = ["src"]
 
 [tool.ruff]
-line-length = 88
+line-length = 108
 target-version = "py312"
 select = ["E", "F", "I"]  # Common linting rules
 fix = true  # Auto-fix linting errors on save
