@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dash-r-app"
+version = "0.1.0"
+description = "A Dash app for visualizing data from R using rpy2"
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+dependencies = [
+    "dash",
+    "pandas",
+    "plotly",
+    "rpy2",
+    "numpy",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "black",
+    "flake8",
+    "mypy",
+]
+
+[tool.setuptools]
+packages = ["src"]
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+
+[tool.flake8]
+max-line-length = 88
+exclude = [".venv", "tests/"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
