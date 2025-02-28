@@ -4,51 +4,6 @@ import plotly.express as px
 from dash import Input, Output, dcc, html
 
 
-# Placeholder function to generate example data
-def generate_data(plot_type):
-    if plot_type == "boxplot":
-        df = pd.DataFrame(
-            {
-                "Gene": np.random.choice(["GeneA", "GeneB", "GeneC"], 100),
-                "Expression": np.random.randn(100),
-            }
-        )
-        return px.box(df, x="Gene", y="Expression", title="Boxplot of Gene Expression")
-
-    elif plot_type == "umap":
-        df = pd.DataFrame(
-            {
-                "UMAP1": np.random.randn(100),
-                "UMAP2": np.random.randn(100),
-                "Cluster": np.random.choice(["Cluster1", "Cluster2", "Cluster3"], 100),
-            }
-        )
-        return px.scatter(df, x="UMAP1", y="UMAP2", color="Cluster", title="UMAP Scatterplot")
-
-    elif plot_type == "violin":
-        df = pd.DataFrame(
-            {
-                "Gene": np.random.choice(["GeneA", "GeneB", "GeneC"], 100),
-                "Expression": np.random.randn(100),
-            }
-        )
-        return px.violin(
-            df, x="Gene", y="Expression", box=True, points="all", title="Violin Plot of Gene Expression"
-        )
-
-    elif plot_type == "heatmap":
-        heatmap_data = np.random.rand(10, 10)
-        return px.imshow(heatmap_data, color_continuous_scale="Viridis", title="Gene Expression Heatmap")
-
-    return px.scatter()
-
-
-# def register_callbacks(app):
-#     @app.callback(Output("plot-output", "figure"), Input("plot-selector", "value"))
-#     def update_plot(plot_type):
-#         return generate_data(plot_type)
-
-
 # Placeholder function to simulate single-cell transcriptomics data
 def generate_example_data():
     np.random.seed(42)
@@ -66,7 +21,7 @@ def generate_example_data():
 
 
 df = generate_example_data()
-
+print(df)
 
 def register_callbacks(app):
     @app.callback(
