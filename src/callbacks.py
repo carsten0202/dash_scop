@@ -1,7 +1,6 @@
 from dash import Input, Output, html, dcc
 import plotly.express as px
 import numpy as np
-import io
 from data_loader import load_seurat_rds
 
 # Load the Seurat data
@@ -9,7 +8,7 @@ RDS_FILE = "testdata/20220818_brain_10x-test_rna-seurat.rds"
 metadata_df, gene_matrix_df, umap_df = load_seurat_rds(RDS_FILE)
 
 # Store the last generated figure
-last_figure = None  
+last_figure = None
 
 def register_callbacks(app):
 
