@@ -12,19 +12,19 @@ metadata_df, gene_matrix_df, umap_df = load_seurat_rds(RDS_FILE)
 # Store the last generated figure
 last_figure = None  
 
-from flask_caching import Cache
-
-# Initialize Flask-Caching **after** app creation
-cache = Cache(config={"CACHE_TYPE": "simple"})
-cache.init_app(app)  # Correct placement
-
-@cache.memoize()
-def get_filtered_data(selected_genes, selected_cell_types):
-    """Cache filtered expression data to avoid recomputation."""
-    filtered_cells = metadata_df.index[metadata_df["seurat_clusters"].isin(selected_cell_types)]
-    return gene_matrix_df.loc[selected_genes, filtered_cells]
 
 def register_callbacks(app):
+    from flask_caching import Cache
+
+    # Initialize Flask-Caching **after** app creation
+    cache = Cache(config={"CACHE_TYPE": "simple"})
+    cache.init_app(app.server)  # Correct placement
+
+    @cache.memoize()
+    def get_filtered_data(selected_genes, selected_cell_types):
+        """Cache filtered expression data to avoid recomputation."""
+        filtered_cells = metadata_df.index[metadata_df["seurat_clusters"].isin(selected_cell_types)]
+        return gene_matrix_df.loc[selected_genes, filtered_cells]
 
     @app.callback(
         Output("gene-selector", "options"),
@@ -58,7 +58,7 @@ def register_callbacks(app):
 
         if plot_type == "boxplot":
             df_melted = filtered_expression.melt(var_name="Cell", value_name="Expression")
-            df_melted["CellType"] = metadata_df.loc[df_melted["Cell"], "seurat_clusters"]
+            df_melted["CellType"] = df_melted["Cell"].map(metadata_df["seurat_clusters"])
             df_melted["Gene"] = np.tile(selected_genes, len(df_melted) // len(selected_genes))
 
             for gene in selected_genes:
