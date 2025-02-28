@@ -1,14 +1,26 @@
 from dash import Input, Output, html, dcc
 import plotly.express as px
 import numpy as np
+import io
+import os
 from data_loader import load_seurat_rds
 
 # Load the Seurat data
 RDS_FILE = "testdata/20220818_brain_10x-test_rna-seurat.rds"
+if not os.path.exists(RDS_FILE):
+    raise FileNotFoundError(f"Missing test data: {RDS_FILE}")
 metadata_df, gene_matrix_df, umap_df = load_seurat_rds(RDS_FILE)
 
+# Print some info for verification
+print("Metadata Sample:")
+print(metadata_df.head())
+print("\nGene Expression Matrix Sample:")
+print(gene_matrix_df.iloc[:5, :5])
+print("\nUMAP Sample:")
+print(umap_df.head())
+
 # Store the last generated figure
-last_figure = None
+last_figure = None  
 
 def register_callbacks(app):
 
@@ -19,7 +31,7 @@ def register_callbacks(app):
     )
     def update_gene_and_celltype_options(plot_type):
         gene_options = [{"label": gene, "value": gene} for gene in gene_matrix_df.index]
-        cell_type_options = [{"label": cell, "value": cell} for cell in metadata_df["cell_type"].unique()]
+        cell_type_options = [{"label": cell, "value": cell} for cell in metadata_df["seurat_clusters"].unique()]
         return gene_options, cell_type_options
 
     @app.callback(
@@ -35,9 +47,9 @@ def register_callbacks(app):
         if selected_genes is None or len(selected_genes) == 0:
             selected_genes = gene_matrix_df.index[:1]
         if selected_cell_types is None or len(selected_cell_types) == 0:
-            selected_cell_types = metadata_df["cell_type"].unique()
+            selected_cell_types = metadata_df["seurat_clusters"].unique()
 
-        filtered_metadata = metadata_df[metadata_df["cell_type"].isin(selected_cell_types)]
+        filtered_metadata = metadata_df[metadata_df["seurat_clusters"].isin(selected_cell_types)]
         filtered_cells = filtered_metadata.index
         filtered_expression = gene_matrix_df.loc[selected_genes, filtered_cells]
 
@@ -102,8 +114,10 @@ def register_callbacks(app):
         if last_figure is None:
             return None  # No figure to download
 
-        # Save figure as an SVG file
-        file_path = "plot.svg"
-        last_figure.write_image(file_path, format="svg")
+        # Save figure as SVG
+        svg_buffer = io.StringIO()
+        last_figure.write_image(svg_buffer, format="svg")
 
-        return dcc.send_file(file_path)
+        # Encode SVG content as a downloadable file
+        encoded_svg = svg_buffer.getvalue()
+        return dcc.send_string(encoded_svg, filename="plot.svg")
