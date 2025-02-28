@@ -1,26 +1,27 @@
-from dash import Input, Output, html, dcc
+from dash import Input, Output, State, html, dcc
 import plotly.express as px
+import pandas as pd
 import numpy as np
 import io
-import os
+import base64
 from data_loader import load_seurat_rds
 
 # Load the Seurat data
 RDS_FILE = "testdata/20220818_brain_10x-test_rna-seurat.rds"
-if not os.path.exists(RDS_FILE):
-    raise FileNotFoundError(f"Missing test data: {RDS_FILE}")
 metadata_df, gene_matrix_df, umap_df = load_seurat_rds(RDS_FILE)
-
-# Print some info for verification
-print("Metadata Sample:")
-print(metadata_df.head())
-print("\nGene Expression Matrix Sample:")
-print(gene_matrix_df.iloc[:5, :5])
-print("\nUMAP Sample:")
-print(umap_df.head())
 
 # Store the last generated figure
 last_figure = None  
+
+from dash_extensions.enrich import Cache
+
+cache = Cache(cache_type="memory")
+
+@cache.memoize()
+def get_filtered_data(selected_genes, selected_cell_types):
+    """Cache filtered expression data to avoid recomputation."""
+    filtered_cells = metadata_df.index[metadata_df["seurat_clusters"].isin(selected_cell_types)]
+    return gene_matrix_df.loc[selected_genes, filtered_cells]
 
 def register_callbacks(app):
 
@@ -49,15 +50,14 @@ def register_callbacks(app):
         if selected_cell_types is None or len(selected_cell_types) == 0:
             selected_cell_types = metadata_df["seurat_clusters"].unique()
 
-        filtered_metadata = metadata_df[metadata_df["seurat_clusters"].isin(selected_cell_types)]
-        filtered_cells = filtered_metadata.index
-        filtered_expression = gene_matrix_df.loc[selected_genes, filtered_cells]
+        filtered_cells = metadata_df.index[metadata_df["seurat_clusters"].isin(selected_cell_types)]
+        filtered_expression = get_filtered_data(selected_genes, selected_cell_types)
 
         plot_figures = []
 
         if plot_type == "boxplot":
             df_melted = filtered_expression.melt(var_name="Cell", value_name="Expression")
-            df_melted["CellType"] = metadata_df.loc[df_melted["Cell"], "cell_type"]
+            df_melted["CellType"] = metadata_df.loc[df_melted["Cell"], "seurat_clusters"]
             df_melted["Gene"] = np.tile(selected_genes, len(df_melted) // len(selected_genes))
 
             for gene in selected_genes:
@@ -74,14 +74,14 @@ def register_callbacks(app):
                 umap_df.loc[filtered_cells],
                 x="UMAP1",
                 y="UMAP2",
-                color=metadata_df.loc[filtered_cells, "cell_type"],
+                color=metadata_df.loc[filtered_cells, "seurat_clusters"],
                 title="UMAP Scatterplot"
             )
             plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
         elif plot_type == "violin":
             df_melted = filtered_expression.melt(var_name="Cell", value_name="Expression")
-            df_melted["CellType"] = metadata_df.loc[df_melted["Cell"], "cell_type"]
+            df_melted["CellType"] = metadata_df.loc[df_melted["Cell"], "seurat_clusters"]
             df_melted["Gene"] = np.tile(selected_genes, len(df_melted) // len(selected_genes))
 
             last_figure = px.violin(
@@ -120,4 +120,4 @@ def register_callbacks(app):
 
         # Encode SVG content as a downloadable file
         encoded_svg = svg_buffer.getvalue()
-        return dcc.send_string(encoded_svg, filename="plot.svg")
+        return dcc.send_file(encoded_svg, filename="plot.svg")
