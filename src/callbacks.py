@@ -3,7 +3,6 @@ import plotly.express as px
 import pandas as pd
 import numpy as np
 import io
-import base64
 from data_loader import load_seurat_rds
 
 # Load the Seurat data
@@ -15,7 +14,9 @@ last_figure = None
 
 from flask_caching import Cache
 
+# Initialize Flask-Caching **after** app creation
 cache = Cache(config={"CACHE_TYPE": "simple"})
+cache.init_app(app)  # Correct placement
 
 @cache.memoize()
 def get_filtered_data(selected_genes, selected_cell_types):
