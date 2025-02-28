@@ -17,7 +17,7 @@ register_callbacks(app)
 def main():
     ip = os.getenv("DASH_IP", "127.0.0.1")
     port = int(os.getenv("DASH_PORT", 8050))
-    debug = os.getenv("DASH_DEBUG", "False") == "True"
+    debug = os.getenv("DASH_DEBUG", "True") == "True"
 
     # Path to the test RDS file
     RDS_FILE = "testdata/20220818_brain_10x-test_rna-seurat.rds"
