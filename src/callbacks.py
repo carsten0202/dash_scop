@@ -1,37 +1,26 @@
-import numpy as np
-import pandas as pd
+from dash import Input, Output, html, dcc
 import plotly.express as px
-from dash import Input, Output, dcc, html
+import numpy as np
+import io
+from src.data_loader import load_seurat_rds
 
+# Load the Seurat data
+RDS_FILE = "data/20220818_brain_10x-test_rna-seurat.rds"
+metadata_df, gene_matrix_df, umap_df = load_seurat_rds(RDS_FILE)
 
-# Placeholder function to simulate single-cell transcriptomics data
-def generate_example_data():
-    np.random.seed(42)
-    df = pd.DataFrame(
-        {
-            "Gene": np.random.choice(["GeneA", "GeneB", "GeneC", "GeneD"], 500),
-            "Expression": np.random.randn(500),
-            "UMAP1": np.random.randn(500),
-            "UMAP2": np.random.randn(500),
-            "Cluster": np.random.choice(["Cluster1", "Cluster2", "Cluster3"], 500),
-            "CellType": np.random.choice(["T Cell", "B Cell", "Macrophage"], 500),
-        }
-    )
-    return df
-
-
-df = generate_example_data()
-print(df)
+# Store the last generated figure
+last_figure = None  
 
 def register_callbacks(app):
+
     @app.callback(
         Output("gene-selector", "options"),
         Output("cell-type-filter", "options"),
-        Input("plot-selector", "value"),
+        Input("plot-selector", "value")
     )
     def update_gene_and_celltype_options(plot_type):
-        gene_options = [{"label": gene, "value": gene} for gene in df["Gene"].unique()]
-        cell_type_options = [{"label": cell, "value": cell} for cell in df["CellType"].unique()]
+        gene_options = [{"label": gene, "value": gene} for gene in gene_matrix_df.index]
+        cell_type_options = [{"label": cell, "value": cell} for cell in metadata_df["cell_type"].unique()]
         return gene_options, cell_type_options
 
     @app.callback(
@@ -39,48 +28,85 @@ def register_callbacks(app):
         Input("plot-selector", "value"),
         Input("gene-selector", "value"),
         Input("cell-type-filter", "value"),
+        prevent_initial_call=True
     )
     def update_plots(plot_type, selected_genes, selected_cell_types):
-        if selected_genes is None or len(selected_genes) == 0:
-            selected_genes = df["Gene"].unique()[:1]  # Default to one gene
-        if selected_cell_types is None or len(selected_cell_types) == 0:
-            selected_cell_types = df["CellType"].unique()  # No filter
+        global last_figure  # Store last figure for export
 
-        filtered_df = df[df["Gene"].isin(selected_genes) & df["CellType"].isin(selected_cell_types)]
+        if selected_genes is None or len(selected_genes) == 0:
+            selected_genes = gene_matrix_df.index[:1]
+        if selected_cell_types is None or len(selected_cell_types) == 0:
+            selected_cell_types = metadata_df["cell_type"].unique()
+
+        filtered_metadata = metadata_df[metadata_df["cell_type"].isin(selected_cell_types)]
+        filtered_cells = filtered_metadata.index
+        filtered_expression = gene_matrix_df.loc[selected_genes, filtered_cells]
 
         plot_figures = []
 
         if plot_type == "boxplot":
+            df_melted = filtered_expression.melt(var_name="Cell", value_name="Expression")
+            df_melted["CellType"] = metadata_df.loc[df_melted["Cell"], "cell_type"]
+            df_melted["Gene"] = np.tile(selected_genes, len(df_melted) // len(selected_genes))
+
             for gene in selected_genes:
-                fig = px.box(
-                    filtered_df[filtered_df["Gene"] == gene],
+                last_figure = px.box(
+                    df_melted[df_melted["Gene"] == gene],
                     x="CellType",
                     y="Expression",
-                    title=f"Boxplot for {gene}",
+                    title=f"Boxplot for {gene}"
                 )
-                plot_figures.append(
-                    html.Div(dcc.Graph(figure=fig), style={"width": "48%", "display": "inline-block"})
-                )
+                plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "48%", "display": "inline-block"}))
 
         elif plot_type == "umap":
-            fig = px.scatter(filtered_df, x="UMAP1", y="UMAP2", color="Cluster", title="UMAP Scatterplot")
-            plot_figures.append(html.Div(dcc.Graph(figure=fig), style={"width": "100%"}))
+            last_figure = px.scatter(
+                umap_df.loc[filtered_cells],
+                x="UMAP1",
+                y="UMAP2",
+                color=metadata_df.loc[filtered_cells, "cell_type"],
+                title="UMAP Scatterplot"
+            )
+            plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
         elif plot_type == "violin":
-            fig = px.violin(
-                filtered_df,
+            df_melted = filtered_expression.melt(var_name="Cell", value_name="Expression")
+            df_melted["CellType"] = metadata_df.loc[df_melted["Cell"], "cell_type"]
+            df_melted["Gene"] = np.tile(selected_genes, len(df_melted) // len(selected_genes))
+
+            last_figure = px.violin(
+                df_melted,
                 x="Gene",
                 y="Expression",
                 color="CellType",
                 box=True,
                 points="all",
-                title="Violin Plot",
+                title="Violin Plot"
             )
-            plot_figures.append(html.Div(dcc.Graph(figure=fig), style={"width": "100%"}))
+            plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
         elif plot_type == "heatmap":
-            heatmap_data = np.random.rand(10, len(selected_genes))
-            fig = px.imshow(heatmap_data, color_continuous_scale="Viridis", title="Gene Expression Heatmap")
-            plot_figures.append(html.Div(dcc.Graph(figure=fig), style={"width": "100%"}))
+            heatmap_data = filtered_expression.to_numpy()
+            last_figure = px.imshow(heatmap_data, color_continuous_scale="Viridis", title="Gene Expression Heatmap")
+            plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
         return plot_figures
+
+    @app.callback(
+        Output("download-plot", "data"),
+        Input("download-btn", "n_clicks"),
+        prevent_initial_call=True
+    )
+    def download_plot(n_clicks):
+        """Saves the last generated plot as an SVG file and provides it for download."""
+        global last_figure
+
+        if last_figure is None:
+            return None  # No figure to download
+
+        # Save figure as SVG
+        svg_buffer = io.StringIO()
+        last_figure.write_image(svg_buffer, format="svg")
+
+        # Encode SVG content as a downloadable file
+        encoded_svg = svg_buffer.getvalue()
+        return dcc.send_string(encoded_svg, filename="plot.svg")
