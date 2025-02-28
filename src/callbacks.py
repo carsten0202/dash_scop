@@ -13,9 +13,9 @@ metadata_df, gene_matrix_df, umap_df = load_seurat_rds(RDS_FILE)
 # Store the last generated figure
 last_figure = None  
 
-from dash_extensions.enrich import Cache
+from flask_caching import Cache
 
-cache = Cache(cache_type="memory")
+cache = Cache(config={"CACHE_TYPE": "simple"})
 
 @cache.memoize()
 def get_filtered_data(selected_genes, selected_cell_types):
