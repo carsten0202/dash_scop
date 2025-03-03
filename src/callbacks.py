@@ -71,8 +71,8 @@ def register_callbacks(app):
         elif plot_type == "umap":
             last_figure = px.scatter(
                 umap_df.loc[filtered_cells],
-                x="UMAP1",
-                y="UMAP2",
+                x="UMAP_1",
+                y="UMAP_2",
                 color=metadata_df.loc[filtered_cells, "seurat_clusters"],
                 title="UMAP Scatterplot",
             )
