@@ -80,7 +80,7 @@ def register_callbacks(app):
 
         elif plot_type == "violin":
             df_melted = filtered_expression.melt(var_name="Cell", value_name="Expression")
-            df_melted["CellType"] = metadata_df.loc[df_melted["Cell"], "seurat_clusters"]
+            df_melted["CellType"] = df_melted["Cell"].map(metadata_df["seurat_clusters"])
             df_melted["Gene"] = np.tile(selected_genes, len(df_melted) // len(selected_genes))
 
             last_figure = px.violin(
