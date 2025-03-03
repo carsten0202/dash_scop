@@ -1,8 +1,9 @@
-from dash import Input, Output, State, html, dcc
-import plotly.express as px
-import pandas as pd
-import numpy as np
 import io
+
+import numpy as np
+import plotly.express as px
+from dash import Input, Output, dcc, html
+
 from data_loader import load_seurat_rds
 
 # Load the Seurat data
@@ -10,7 +11,7 @@ RDS_FILE = "testdata/20220818_brain_10x-test_rna-seurat.rds"
 metadata_df, gene_matrix_df, umap_df = load_seurat_rds(RDS_FILE)
 
 # Store the last generated figure
-last_figure = None  
+last_figure = None
 
 
 def register_callbacks(app):
@@ -27,9 +28,7 @@ def register_callbacks(app):
         return gene_matrix_df.loc[selected_genes, filtered_cells]
 
     @app.callback(
-        Output("gene-selector", "options"),
-        Output("cell-type-filter", "options"),
-        Input("plot-selector", "value")
+        Output("gene-selector", "options"), Output("cell-type-filter", "options"), Input("plot-selector", "value")
     )
     def update_gene_and_celltype_options(plot_type):
         gene_options = [{"label": gene, "value": gene} for gene in gene_matrix_df.index]
@@ -41,7 +40,7 @@ def register_callbacks(app):
         Input("plot-selector", "value"),
         Input("gene-selector", "value"),
         Input("cell-type-filter", "value"),
-        prevent_initial_call=True
+        prevent_initial_call=True,
     )
     def update_plots(plot_type, selected_genes, selected_cell_types):
         global last_figure  # Store last figure for export
@@ -63,12 +62,11 @@ def register_callbacks(app):
 
             for gene in selected_genes:
                 last_figure = px.box(
-                    df_melted[df_melted["Gene"] == gene],
-                    x="CellType",
-                    y="Expression",
-                    title=f"Boxplot for {gene}"
+                    df_melted[df_melted["Gene"] == gene], x="CellType", y="Expression", title=f"Boxplot for {gene}"
                 )
-                plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "48%", "display": "inline-block"}))
+                plot_figures.append(
+                    html.Div(dcc.Graph(figure=last_figure), style={"width": "48%", "display": "inline-block"})
+                )
 
         elif plot_type == "umap":
             last_figure = px.scatter(
@@ -76,7 +74,7 @@ def register_callbacks(app):
                 x="UMAP1",
                 y="UMAP2",
                 color=metadata_df.loc[filtered_cells, "seurat_clusters"],
-                title="UMAP Scatterplot"
+                title="UMAP Scatterplot",
             )
             plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
@@ -86,13 +84,7 @@ def register_callbacks(app):
             df_melted["Gene"] = np.tile(selected_genes, len(df_melted) // len(selected_genes))
 
             last_figure = px.violin(
-                df_melted,
-                x="Gene",
-                y="Expression",
-                color="CellType",
-                box=True,
-                points="all",
-                title="Violin Plot"
+                df_melted, x="Gene", y="Expression", color="CellType", box=True, points="all", title="Violin Plot"
             )
             plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
@@ -103,11 +95,7 @@ def register_callbacks(app):
 
         return plot_figures
 
-    @app.callback(
-        Output("download-plot", "data"),
-        Input("download-btn", "n_clicks"),
-        prevent_initial_call=True
-    )
+    @app.callback(Output("download-plot", "data"), Input("download-btn", "n_clicks"), prevent_initial_call=True)
     def download_plot(n_clicks):
         """Saves the last generated plot as an SVG file and provides it for download."""
         global last_figure
