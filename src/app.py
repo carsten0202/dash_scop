@@ -3,7 +3,6 @@ import os
 from dash import Dash
 
 from callbacks import register_callbacks
-from data_loader import load_seurat_rds
 from layout import layout
 
 # Initialize Dash app
@@ -12,6 +11,7 @@ app.layout = layout
 
 # Register callbacks
 register_callbacks(app)
+
 
 def main():
     ip = os.getenv("DASH_IP", "127.0.0.1")
