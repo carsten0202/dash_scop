@@ -1,0 +1,7 @@
+dash
+pandas
+plotly
+rpy2
+numpy
+click
+pyyaml
