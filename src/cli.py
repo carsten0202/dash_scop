@@ -7,6 +7,7 @@ import yaml
 DEFAULT_IP = os.getenv("DASH_IP", "127.0.0.1")
 DEFAULT_PORT = int(os.getenv("DASH_PORT", 8050))
 DEFAULT_DEBUG = os.getenv("DASH_DEBUG", "True") == "True"
+DEFAULT_RDS_FILE = "testdata/seurat_obj_downsampled.rds"
 
 
 @click.command()
@@ -23,6 +24,7 @@ def run(config, debug, ip, port, rds):
     ip = ip or config_data.get("ip", DEFAULT_IP)
     port = port or config_data.get("port", DEFAULT_PORT)
     debug = debug if debug is not None else config_data.get("debug", DEFAULT_DEBUG)
+    rds = rds if rds is not None else config_data.get("rds", DEFAULT_RDS_FILE)
 
     os.environ["DASH_IP"] = ip
     os.environ["DASH_PORT"] = str(port)
