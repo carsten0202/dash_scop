@@ -13,8 +13,8 @@ DEFAULT_RDS_FILE = "testdata/seurat_obj_downsampled.rds"
 @click.command()
 @click.option("--config", type=click.Path(exists=True), help="Path to a JSON or YAML config file.")
 @click.option("--debug", is_flag=True, default=DEFAULT_DEBUG, help="Enable Dash debug mode.")
-@click.option("--ip", default=DEFAULT_IP, help="IP address to run the Dash app on.")
-@click.option("--port", default=DEFAULT_PORT, type=int, help="Port number for the Dash app.")
+@click.option("--ip", help="IP address to run the Dash app on.")
+@click.option("--port", type=int, help="Port number for the Dash app.")
 @click.option("-r", "--rds", type=str, help="Path to RDS datafile containing one Seurat object.")
 def run(config, debug, ip, port, rds):
     """Launch the Dash app with configurable IP, port, and debug mode."""
@@ -24,7 +24,7 @@ def run(config, debug, ip, port, rds):
     ip = ip or config_data.get("ip", DEFAULT_IP)
     port = port or config_data.get("port", DEFAULT_PORT)
     debug = debug if debug is not None else config_data.get("debug", DEFAULT_DEBUG)
-    rds = rds if rds is not None else config_data.get("rds", DEFAULT_RDS_FILE)
+    rds = rds or config_data.get("rds", DEFAULT_RDS_FILE)
 
     os.environ["DASH_IP"] = ip
     os.environ["DASH_PORT"] = str(port)
