@@ -4,17 +4,18 @@ import os
 import click
 import yaml
 
-DEFAULT_IP = "127.0.0.1"
-DEFAULT_PORT = 8050
-DEFAULT_DEBUG = True
+DEFAULT_IP = os.getenv("DASH_IP", "127.0.0.1")
+DEFAULT_PORT = int(os.getenv("DASH_PORT", 8050))
+DEFAULT_DEBUG = os.getenv("DASH_DEBUG", "True") == "True"
 
 
 @click.command()
 @click.option("--config", type=click.Path(exists=True), help="Path to a JSON or YAML config file.")
+@click.option("--debug", is_flag=True, default=DEFAULT_DEBUG, help="Enable Dash debug mode.")
 @click.option("--ip", default=DEFAULT_IP, help="IP address to run the Dash app on.")
 @click.option("--port", default=DEFAULT_PORT, type=int, help="Port number for the Dash app.")
-@click.option("--debug", is_flag=True, default=DEFAULT_DEBUG, help="Enable Dash debug mode.")
-def run(config, ip, port, debug):
+@click.option("-r", "--rds", type=str, help="Path to RDS datafile containing one Seurat object.")
+def run(config, debug, ip, port, rds):
     """Launch the Dash app with configurable IP, port, and debug mode."""
 
     config_data = load_config(config) if config else {}
@@ -26,6 +27,7 @@ def run(config, ip, port, debug):
     os.environ["DASH_IP"] = ip
     os.environ["DASH_PORT"] = str(port)
     os.environ["DASH_DEBUG"] = str(debug)
+    os.environ["DASH_RDS"] = rds
 
     from app import main  # Import after setting env variables
 
