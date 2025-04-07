@@ -1,4 +1,5 @@
 import io
+import os
 
 import numpy as np
 import plotly.express as px
@@ -7,7 +8,7 @@ from dash import Input, Output, dcc, html
 from data_loader import load_seurat_rds
 
 # Load the Seurat data
-RDS_FILE = "testdata/seurat_obj_downsampled.rds"
+RDS_FILE = os.getenv("DASH_RDS_FILE", "testdata/seurat_obj_downsampled.rds")
 # RDS_FILE = "testdata/20220818_brain_10x-test_rna-seurat.rds"
 metadata_df, gene_matrix_df, umap_df = load_seurat_rds(RDS_FILE)
 
