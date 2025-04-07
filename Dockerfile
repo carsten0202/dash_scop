@@ -59,10 +59,10 @@ RUN python3 -m venv .venv
 RUN .venv/bin/python3 -m pip install --upgrade pip && \
     .venv/bin/python3 -m pip install -r requirements.txt
 
-COPY testdata/*.rds testdata/
+COPY testdata/seurat_obj_downsampled.rds data/data.rds
 COPY src .
 
 # Expose and run
 EXPOSE 8050
-CMD [".venv/bin/python3", "cli.py", "--ip", "0.0.0.0", "--port", "8050"]
+CMD [".venv/bin/python3", "cli.py", "--ip", "0.0.0.0", "--port", "8050", "--rds", "data/data.rds"]
 
