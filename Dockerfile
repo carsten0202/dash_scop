@@ -52,7 +52,6 @@ RUN adduser \
 USER appuser
 WORKDIR /app
 COPY requirements.txt .
-COPY testdata/20220818_brain_10x-test_rna-seurat.rds testdata/20220818_brain_10x-test_rna-seurat.rds 
 
 
 # Install Python dependencies (including rpy2) into venv
@@ -60,9 +59,10 @@ RUN python3 -m venv .venv
 RUN .venv/bin/python3 -m pip install --upgrade pip && \
     .venv/bin/python3 -m pip install -r requirements.txt
 
+COPY testdata/*.rds testdata/
 COPY src .
 
 # Expose and run
 EXPOSE 8050
-CMD [".venv/bin/python3", "cli.py", "--ip", "127.0.0.1", "--port", "8050"]
+CMD [".venv/bin/python3", "cli.py", "--ip", "0.0.0.0", "--port", "8050"]
 

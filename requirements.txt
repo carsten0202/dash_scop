@@ -5,3 +5,4 @@ rpy2
 numpy
 click
 pyyaml
+flask_caching

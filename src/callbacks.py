@@ -7,7 +7,8 @@ from dash import Input, Output, dcc, html
 from data_loader import load_seurat_rds
 
 # Load the Seurat data
-RDS_FILE = "testdata/20220818_brain_10x-test_rna-seurat.rds"
+RDS_FILE = "testdata/seurat_obj_downsampled.rds"
+# RDS_FILE = "testdata/20220818_brain_10x-test_rna-seurat.rds"
 metadata_df, gene_matrix_df, umap_df = load_seurat_rds(RDS_FILE)
 
 # Store the last generated figure
