@@ -18,7 +18,6 @@ DEFAULT_RDS_FILE = "testdata/seurat_obj_downsampled.rds"
 @click.option("-r", "--rds", type=str, help="Path to RDS datafile containing one Seurat object.")
 def run(config, debug, ip, port, rds):
     """Launch the Dash app with configurable IP, port, and debug mode."""
-
     config_data = load_config(config) if config else {}
 
     ip = ip or config_data.get("ip", DEFAULT_IP)
