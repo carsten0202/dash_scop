@@ -30,7 +30,9 @@ def register_callbacks(app):
         return gene_matrix_df.loc[selected_genes, filtered_cells]
 
     @app.callback(
-        Output("gene-selector", "options"), Output("cell-type-filter", "options"), Input("plot-selector", "value")
+        Output("gene-selector", "options"),
+        Output("cell-type-filter", "options"),
+        Input("plot-selector", "value"),
     )
     def update_gene_and_celltype_options(plot_type):
         gene_options = [{"label": gene, "value": gene} for gene in gene_matrix_df.index]
@@ -96,7 +98,11 @@ def register_callbacks(app):
 
         return plot_figures
 
-    @app.callback(Output("download-plot", "data"), Input("download-btn", "n_clicks"), prevent_initial_call=True)
+    @app.callback(
+        Output("download-plot", "data"),
+        Input("download-btn", "n_clicks"),
+        prevent_initial_call=True,
+    )
     def download_plot(n_clicks):
         """Saves the last generated plot as an SVG file and provides it for download."""
         global last_figure
