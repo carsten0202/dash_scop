@@ -35,7 +35,10 @@ def register_callbacks(app):
         Input("plot-selector", "value"),
     )
     def update_gene_and_celltype_options(plot_type):
-        gene_options = [{"label": gene, "value": gene} for gene in gene_matrix_df.index]
+        if plot_type == "umap":
+            gene_options = [{"display": "none"}]
+        else:
+            gene_options = [{"label": gene, "value": gene} for gene in gene_matrix_df.index]
         cell_type_options = [{"label": cell, "value": cell} for cell in metadata_df["seurat_clusters"].unique()]
         return gene_options, cell_type_options
 
