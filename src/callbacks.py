@@ -105,9 +105,11 @@ def register_callbacks(app):
             return None  # No figure to download
 
         # Save figure as SVG
-        svg_buffer = io.StringIO()
+        svg_buffer = io.BytesIO()
+        print(type(svg_buffer))
+        print(type(last_figure))
         last_figure.write_image(svg_buffer, format="svg")
 
         # Encode SVG content as a downloadable file
         encoded_svg = svg_buffer.getvalue()
-        return dcc.send_file(encoded_svg, filename="plot.svg")
+        return dcc.send_bytes(encoded_svg, filename="plot.svg")
