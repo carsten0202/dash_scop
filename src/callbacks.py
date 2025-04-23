@@ -42,7 +42,7 @@ def register_callbacks(app):
         Input("plot-selector", "value"),
         Input("gene-selector", "value"),
         Input("cell-type-filter", "value"),
-        prevent_initial_call=True,
+        prevent_initial_call=False,
     )
     def update_plots(plot_type, selected_genes, selected_cell_types):
         global last_figure  # Store last figure for export
