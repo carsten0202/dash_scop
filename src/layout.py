@@ -18,12 +18,17 @@ layout = html.Div([
     ),
 
     # Multi-dropdown for gene selection
-    html.Label("Select genes:"),
-    dcc.Dropdown(
-        id="gene-selector",
-        options=[],  # Populated dynamically
-        multi=True,
-        placeholder="Select genes to display...",
+	html.Div(
+		id = "gene-selector-container",
+        children = [
+			html.Label("Select gene(s):", htmlFor="gene-selector"),
+            dcc.Dropdown(
+                id="gene-selector",
+                options=[],  # Populated dynamically
+                multi=True,
+                placeholder="Select genes to display...",
+			)
+		],
     ),
 
     # Checklist for cell type filtering
