@@ -45,7 +45,7 @@ def register_callbacks(app):
     )
     def toggle_gene_selector(plot_type):
         # List of plots that should show the gene selector
-        plots_showing_genes = ['boxplot', "violin", "heatmap"]  # Update as needed
+        plots_showing_genes = ["boxplot", "violin", "heatmap"]  # Update as needed
         if plot_type in plots_showing_genes:
             return {'display': 'block'}  # Show
         else:
