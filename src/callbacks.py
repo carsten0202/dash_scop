@@ -35,12 +35,21 @@ def register_callbacks(app):
         Input("plot-selector", "value"),
     )
     def update_gene_and_celltype_options(plot_type):
-        if plot_type == "umap":
-            gene_options = [{"display": "none"}]
-        else:
-            gene_options = [{"label": gene, "value": gene} for gene in gene_matrix_df.index]
+        gene_options = [{"label": gene, "value": gene} for gene in gene_matrix_df.index]
         cell_type_options = [{"label": cell, "value": cell} for cell in metadata_df["seurat_clusters"].unique()]
         return gene_options, cell_type_options
+
+    @app.callback(
+        Output('gene-selector-container', 'style'),
+        Input('plot-selector', 'value'),
+    )
+    def toggle_gene_selector(plot_type):
+        # List of plots that should show the gene selector
+        plots_showing_genes = ['boxplot', "violin", "heatmap"]  # Update as needed
+        if plot_type in plots_showing_genes:
+            return {'display': 'block'}  # Show
+        else:
+            return {'display': 'none'}   # Hide
 
     @app.callback(
         Output("plot-container", "children"),
