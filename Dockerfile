@@ -64,5 +64,5 @@ COPY src .
 
 # Expose and run
 EXPOSE 8050
-CMD ["/app/.venv/bin/python3", "/app/cli.py", "--ip", "0.0.0.0", "--port", "8050", "--rds", "data/data.rds"]
+CMD ["/app/.venv/bin/python3", "/app/cli.py", "--ip", "0.0.0.0", "--port", "8050", "--rds", "/app/data/data.rds"]
 
