@@ -29,6 +29,7 @@ def main():
     cmd = [
         "singularity",
         "exec",
+        "--cleanenv",
         container,
         python_exec,
         cli_script,
