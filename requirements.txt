@@ -6,3 +6,4 @@ numpy
 click
 pyyaml
 flask_caching
+kaleido
