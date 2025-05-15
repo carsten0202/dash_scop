@@ -21,8 +21,8 @@ def main():
     parser = argparse.ArgumentParser(description="Launch Singularity container with auto-selected port and data file.")
     parser.add_argument("--data", default="/app/data/data.rds", help="Path to the .rds data file")
     parser.add_argument("--container", default="dash_scop_latest.sif", help="Singularity container file")
-    parser.add_argument("--port-start", type=int, default=8000, help="Port search start")
-    parser.add_argument("--port-end", type=int, default=9000, help="Port search end")
+    parser.add_argument("--port-start", type=int, default=25000, help="Port search start")
+    parser.add_argument("--port-end", type=int, default=26000, help="Port search end")
 
     args = parser.parse_args()
 
@@ -33,13 +33,13 @@ def main():
         sys.exit(1)
 
     # Find a free port
-    port = find_free_port(start=25000, end=26000)
+    port = find_free_port(start=args.port_start, end=args.port_end)
 
     # Set any other parameters you need
     ip = "0.0.0.0"
     cli_script = "/app/cli.py"
     python_exec = "/app/.venv/bin/python3"
-    container_data_path = "/data/data.rds"
+    container_data_path = args.container
 
     # Build the singularity exec command
     cmd = [
