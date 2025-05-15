@@ -39,18 +39,18 @@ def main():
     ip = "0.0.0.0"
     cli_script = "/app/cli.py"
     python_exec = "/app/.venv/bin/python3"
-    container_data_path = args.container
+    container_data_path = "/app/data/data.rds"
 
     # Build the singularity exec command
     cmd = [
         "singularity",
         "exec",
+        "--cleanenv",
         "--bind",
         f"{host_data_path}:{container_data_path}",  # bind host data into container
         args.container,
         python_exec,
         cli_script,
-        "--cleanenv",
         "--ip",
         ip,
         "--port",
