@@ -59,7 +59,7 @@ def main():
         container_data_path,
     ]
 
-    # Run test
+    # Run
     print(f"Launching on port {port} using data file: {host_data_path}")
     # Print info for debugging
     print("Running command:", " ".join(cmd))
