@@ -15,7 +15,7 @@ register_callbacks(app)
 
 def main():
     ip = os.getenv("DASH_IP", "127.0.0.1")
-    port = int(os.getenv("DASH_PORT", 8050))
+    port = str(os.getenv("DASH_PORT", 8050))
     debug = os.getenv("DASH_DEBUG", "True") == "True"
 
     app.run(host=ip, port=port, debug=debug)
