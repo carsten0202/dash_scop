@@ -105,7 +105,7 @@ def register_callbacks(app):
 
         elif plot_type == "heatmap":
             heatmap_data = filtered_expression.to_numpy()
-            print(heatmap_data)
+            # print(filtered_expression)
             last_figure = px.imshow(heatmap_data, color_continuous_scale="Viridis", title="Gene Expression Heatmap")
             plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
