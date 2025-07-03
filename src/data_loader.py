@@ -34,7 +34,7 @@ def load_seurat_rds(file_path):
     ro.r("""
     extract_data <- function(seurat_obj) {
         metadata <- seurat_obj@meta.data  # Cell metadata
-        gene_matrix <- as.data.frame(as.matrix(seurat_obj@assays$RNA@data))  # Expression matrix
+        gene_matrix <- as.data.frame(as.matrix(seurat_obj@assays$SCT@data))  # Expression matrix
         umap <- as.data.frame(Embeddings(seurat_obj, reduction = "umap"))  # UMAP coordinates
         list(metadata = metadata, gene_matrix = gene_matrix, umap = umap)
     }
@@ -45,5 +45,6 @@ def load_seurat_rds(file_path):
     metadata_df = rpy2.robjects.pandas2ri.rpy2py(extracted[0])  # Convert to Pandas DataFrame
     gene_matrix_df = rpy2.robjects.pandas2ri.rpy2py(extracted[1])  # Gene expression matrix
     umap_df = rpy2.robjects.pandas2ri.rpy2py(extracted[2])  # UMAP data
+    umap_df.columns = umap_df.columns.str.upper()
 
     return metadata_df, gene_matrix_df, umap_df
