@@ -62,7 +62,7 @@ def register_callbacks(app):
         global last_figure  # Store last figure for export
 
         if selected_genes is None or len(selected_genes) == 0:
-            selected_genes = gene_matrix_df.index[:1]
+            selected_genes = gene_matrix_df.index
         if selected_cell_types is None or len(selected_cell_types) == 0:
             selected_cell_types = metadata_df["seurat_clusters"].unique()
 
@@ -76,13 +76,14 @@ def register_callbacks(app):
             df_melted["CellType"] = df_melted["Cell"].map(metadata_df["seurat_clusters"])
             df_melted["Gene"] = np.tile(selected_genes, len(df_melted) // len(selected_genes))
 
-            for gene in selected_genes:
-                last_figure = px.box(
-                    df_melted[df_melted["Gene"] == gene], x="CellType", y="Expression", title=f"Boxplot for {gene}"
-                )
-                plot_figures.append(
-                    html.Div(dcc.Graph(figure=last_figure), style={"width": "48%", "display": "inline-block"})
-                )
+            if len(selected_genes) <= 50:
+                for gene in selected_genes:
+                    last_figure = px.box(
+                        df_melted[df_melted["Gene"] == gene], x="CellType", y="Expression", title=f"Boxplot for {gene}"
+                    )
+                    plot_figures.append(
+                        html.Div(dcc.Graph(figure=last_figure), style={"width": "48%", "display": "inline-block"})
+                    )
 
         elif plot_type == "umap":
             last_figure = px.scatter(
@@ -101,7 +102,8 @@ def register_callbacks(app):
             last_figure = px.violin(
                 df_melted, x="Gene", y="Expression", color="CellType", box=True, points="all", title="Violin Plot"
             )
-            plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
+            if len(selected_genes) <= 50:
+                plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
         elif plot_type == "heatmap":
             heatmap_data = filtered_expression.to_numpy()
