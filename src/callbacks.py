@@ -9,8 +9,10 @@ from data_loader import load_seurat_rds
 
 # Load the Seurat data
 RDS_FILE = os.getenv("DASH_RDS_FILE", "testdata/seurat_obj_downsampled.rds")
-# RDS_FILE = "testdata/20220818_brain_10x-test_rna-seurat.rds"
 metadata_df, gene_matrix_df, umap_df = load_seurat_rds(RDS_FILE)
+
+# Some standard settings
+max_features = 50
 
 # Store the last generated figure
 last_figure = None
@@ -21,7 +23,7 @@ def register_callbacks(app):
 
     # Initialize Flask-Caching **after** app creation
     cache = Cache(config={"CACHE_TYPE": "simple"})
-    cache.init_app(app.server)  # Correct placement
+    cache.init_app(app.server)
 
     @cache.memoize()
     def get_filtered_data(selected_genes, selected_cell_types):
@@ -53,6 +55,7 @@ def register_callbacks(app):
 
     @app.callback(
         Output("plot-container", "children"),
+        Output("error-message", "children"),
         Input("plot-selector", "value"),
         Input("gene-selector", "value"),
         Input("cell-type-filter", "value"),
@@ -71,47 +74,59 @@ def register_callbacks(app):
 
         plot_figures = []
 
-        if plot_type == "boxplot":
-            df_melted = filtered_expression.melt(var_name="Cell", value_name="Expression")
-            df_melted["CellType"] = df_melted["Cell"].map(metadata_df["seurat_clusters"])
-            df_melted["Gene"] = np.tile(selected_genes, len(df_melted) // len(selected_genes))
+        try:
+            if plot_type == "boxplot" and len(selected_genes) <= max_features:
+                df_melted = filtered_expression.melt(var_name="Cell", value_name="Expression")
+                df_melted["CellType"] = df_melted["Cell"].map(metadata_df["seurat_clusters"])
+                df_melted["Gene"] = np.tile(selected_genes, len(df_melted) // len(selected_genes))
 
-            if len(selected_genes) <= 50:
-                for gene in selected_genes:
-                    last_figure = px.box(
-                        df_melted[df_melted["Gene"] == gene], x="CellType", y="Expression", title=f"Boxplot for {gene}"
-                    )
-                    plot_figures.append(
-                        html.Div(dcc.Graph(figure=last_figure), style={"width": "48%", "display": "inline-block"})
-                    )
+                if len(selected_genes) <= max_features:
+                    for gene in selected_genes:
+                        last_figure = px.box(
+                            df_melted[df_melted["Gene"] == gene],
+                            x="CellType",
+                            y="Expression",
+                            title=f"Boxplot for {gene}",
+                        )
+                        plot_figures.append(
+                            html.Div(dcc.Graph(figure=last_figure), style={"width": "48%", "display": "inline-block"})
+                        )
 
-        elif plot_type == "umap":
-            last_figure = px.scatter(
-                umap_df.loc[filtered_cells],
-                x="UMAP_1",
-                y="UMAP_2",
-                color=metadata_df.loc[filtered_cells, "seurat_clusters"],
-                title="UMAP Scatterplot",
-            )
-            plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
-
-        elif plot_type == "violin":
-            df_melted = filtered_expression.melt(var_name="Cell", value_name="Expression")
-            df_melted["CellType"] = df_melted["Cell"].map(metadata_df["seurat_clusters"])
-            df_melted["Gene"] = np.tile(selected_genes, len(df_melted) // len(selected_genes))
-            last_figure = px.violin(
-                df_melted, x="Gene", y="Expression", color="CellType", box=True, points="all", title="Violin Plot"
-            )
-            if len(selected_genes) <= 50:
+            elif plot_type == "umap":
+                last_figure = px.scatter(
+                    umap_df.loc[filtered_cells],
+                    x="UMAP_1",
+                    y="UMAP_2",
+                    color=metadata_df.loc[filtered_cells, "seurat_clusters"],
+                    title="UMAP Scatterplot",
+                )
                 plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
-        elif plot_type == "heatmap":
-            heatmap_data = filtered_expression.to_numpy()
-            # print(filtered_expression)
-            last_figure = px.imshow(heatmap_data, color_continuous_scale="Viridis", title="Gene Expression Heatmap")
-            plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
+            elif plot_type == "violin" and len(selected_genes) <= max_features:
+                df_melted = filtered_expression.melt(var_name="Cell", value_name="Expression")
+                df_melted["CellType"] = df_melted["Cell"].map(metadata_df["seurat_clusters"])
+                df_melted["Gene"] = np.tile(selected_genes, len(df_melted) // len(selected_genes))
+                last_figure = px.violin(
+                    df_melted, x="Gene", y="Expression", color="CellType", box=True, points="all", title="Violin Plot"
+                )
+                if len(selected_genes) <= 50:
+                    plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
-        return plot_figures
+            elif plot_type == "heatmap":
+                heatmap_data = filtered_expression.to_numpy()
+                last_figure = px.imshow(heatmap_data, color_continuous_scale="Viridis", title="Gene Expression Heatmap")
+                plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
+
+            else:
+                raise ValueError(
+                    f"Please select no more than {max_features} features. Current selection is {str(len(selected_genes))} features."
+                )
+
+        except Exception as e:
+            plot_figures.append(html.Div(id="error-message", style={"color": "red"}))
+            return plot_figures, f"Error: {str(e)}"
+
+        return plot_figures, ""
 
     @app.callback(
         Output("download-plot", "data"),
