@@ -12,7 +12,7 @@ RDS_FILE = os.getenv("DASH_RDS_FILE", "testdata/seurat_obj_downsampled.rds")
 metadata_df, gene_matrix_df, umap_df = load_seurat_rds(RDS_FILE)
 
 # Some standard settings
-max_features = 100
+max_features = 60
 
 # Store the last generated figure
 last_figure = None
