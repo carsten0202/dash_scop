@@ -12,7 +12,7 @@ RDS_FILE = os.getenv("DASH_RDS_FILE", "testdata/seurat_obj_downsampled.rds")
 metadata_df, gene_matrix_df, umap_df = load_seurat_rds(RDS_FILE)
 
 # Some standard settings
-max_features = 50
+max_features = 100
 
 # Store the last generated figure
 last_figure = None
@@ -114,8 +114,26 @@ def register_callbacks(app):
 
             elif plot_type == "heatmap":
                 heatmap_data = filtered_expression.to_numpy()
-                last_figure = px.imshow(heatmap_data, color_continuous_scale="Viridis", title="Gene Expression Heatmap")
-                plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
+                last_figure = px.imshow(
+                    heatmap_data,
+                    color_continuous_scale="Viridis",
+                    title="Gene Expression Heatmap",
+                    x=filtered_expression.columns,  # columns
+                    y=selected_genes,  # rows
+                    aspect="auto",
+                    # aspect="equal",
+                    labels=dict(x="Cells", y="Genes", color="Expr"),  # axis titles & color-bar
+                )
+
+                # Don't show labels if there's too many
+                if len(selected_genes) > max_features:
+                    last_figure.update_yaxes(showticklabels=False)
+                if len(filtered_expression.columns) > 2 * max_features:
+                    last_figure.update_xaxes(showticklabels=False)
+
+                plot_figures.append(
+                    html.Div(dcc.Graph(figure=last_figure, style={"height": "70vh"}), style={"width": "100%"})
+                )
 
             else:
                 if selected_genes == gene_matrix_df.index:
@@ -125,7 +143,7 @@ def register_callbacks(app):
                 else:
                     raise ValueError("Something went wrong?")
 
-        except Exception as e:
+        except ValueError as e:
             plot_figures.append(html.Div(id="error-message", style={"color": "red"}))
             return plot_figures, f"Error: {str(e)}"
 
