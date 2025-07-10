@@ -118,9 +118,12 @@ def register_callbacks(app):
                 plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
             else:
-                raise ValueError(
-                    f"Please select no more than {max_features} features. Current selection is {str(len(selected_genes))} features."
-                )
+                if selected_genes == gene_matrix_df.index:
+                    raise ValueError("Please select one or more features.")
+                elif len(selected_genes) > max_features:
+                    raise ValueError(f"Please select no more than {max_features} features.")
+                else:
+                    raise ValueError("Something went wrong?")
 
         except Exception as e:
             plot_figures.append(html.Div(id="error-message", style={"color": "red"}))
