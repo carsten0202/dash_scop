@@ -28,7 +28,7 @@ def load_seurat_rds(file_path):
     }
     """)
 
-    seurat_obj = ro.r["load_seurat"](file_path)
+    seurat_obj = ro.r["load_seurat"](file_path) # type: ignore
 
     # Extract metadata and expression data
     ro.r("""
@@ -40,7 +40,7 @@ def load_seurat_rds(file_path):
     }
     """)
 
-    extracted = ro.r["extract_data"](seurat_obj)
+    extracted = ro.r["extract_data"](seurat_obj) # type: ignore
 
     metadata_df = rpy2.robjects.pandas2ri.rpy2py(extracted[0])  # Convert to Pandas DataFrame
     gene_matrix_df = rpy2.robjects.pandas2ri.rpy2py(extracted[1])  # Gene expression matrix
