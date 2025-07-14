@@ -27,7 +27,7 @@ def get_layout(config_data):
                         options=[],  # Populated dynamically
                         multi=True,
                         placeholder="Select genes to display...",
-                        value=["Nrg1"],
+                        value=config_data.get("genes", []),
                     ),
                 ],
             ),
