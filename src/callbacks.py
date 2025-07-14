@@ -136,7 +136,7 @@ def register_callbacks(app):
                 )
 
             else:
-                if selected_genes == gene_matrix_df.index:
+                if len(selected_genes) == len(gene_matrix_df.index):
                     raise ValueError("Please select one or more features.")
                 elif len(selected_genes) > max_features:
                     raise ValueError(f"Please select no more than {max_features} features.")
