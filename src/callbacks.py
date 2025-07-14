@@ -144,7 +144,6 @@ def register_callbacks(app):
                     raise ValueError("Something went wrong?")
 
         except ValueError as e:
-#            plot_figures.append(html.Div(id="error-message", style={"color": "red"}))
             return plot_figures, f"Error: {str(e)}"
 
         return plot_figures, ""
