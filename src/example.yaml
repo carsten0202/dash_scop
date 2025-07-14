@@ -9,7 +9,7 @@ debug:
   True
 
 genes:
-  config_data.get("genes", {})
+  [Gpc5, Lingo2, Nrg1, Grm7]
 
 rds:
   testdata/seurat_obj_downsampled.rds
