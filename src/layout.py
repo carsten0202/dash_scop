@@ -26,6 +26,7 @@ layout = html.Div(
                     options=[],  # Populated dynamically
                     multi=True,
                     placeholder="Select genes to display...",
+					value={},
                 ),
             ],
         ),
