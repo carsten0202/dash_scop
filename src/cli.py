@@ -23,6 +23,7 @@ def run(config, debug, ip, port, rds):
     ip = ip or config_data.get("ip", DEFAULT_IP)
     port = port or config_data.get("port", DEFAULT_PORT)
     debug = debug if debug is not None else config_data.get("debug", DEFAULT_DEBUG)
+#    genes = config_data.get("genes", {})
     rds = rds or config_data.get("rds", DEFAULT_RDS_FILE)
 
     os.environ["DASH_IP"] = ip
@@ -32,7 +33,7 @@ def run(config, debug, ip, port, rds):
 
     from app import main  # Import after setting env variables
 
-    main()
+    main(config_data)
 
 
 def load_config(config_file):
