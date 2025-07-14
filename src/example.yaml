@@ -1,0 +1,15 @@
+
+ip:
+  127.0.0.1
+
+port:
+  8052
+
+debug:
+  True
+
+genes:
+  config_data.get("genes", {})
+
+rds:
+  testdata/seurat_obj_downsampled.rds
