@@ -13,7 +13,7 @@ app.layout = layout
 register_callbacks(app)
 
 
-def main():
+def main(config_data):
     ip = os.getenv("DASH_IP", "127.0.0.1")
     port = str(os.getenv("DASH_PORT", 8050))
     debug = os.getenv("DASH_DEBUG", "True") == "True"
@@ -22,4 +22,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main({})
