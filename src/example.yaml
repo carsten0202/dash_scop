@@ -12,4 +12,4 @@ genes:
   [Gpc5, Lingo2, Nrg1, Grm7]
 
 rds:
-  testdata/seurat_obj_downsampled.rds
+  testdata/seurat_small.rds
