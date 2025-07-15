@@ -14,7 +14,7 @@ base = rpackages.importr("base")
 seurat = rpackages.importr("Seurat")
 
 
-def load_seurat_rds(file_path, data="data"):
+def load_seurat_rds(file_path, assay="SCT", layer="data"):
     """Reads an RDS file containing a Seurat object and extracts relevant data."""
 
     if not os.path.exists(file_path):
@@ -40,7 +40,7 @@ def load_seurat_rds(file_path, data="data"):
     }
     """)
 
-    extracted = ro.r["extract_data"](seurat_obj, "SCT", data)  # type: ignore
+    extracted = ro.r["extract_data"](seurat_obj, assay, layer)  # type: ignore
 
     metadata_df = rpy2.robjects.pandas2ri.rpy2py(extracted[0])  # Convert to Pandas DataFrame
     gene_matrix_df = rpy2.robjects.pandas2ri.rpy2py(extracted[1])  # Gene expression matrix
