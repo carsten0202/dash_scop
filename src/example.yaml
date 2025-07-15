@@ -8,8 +8,14 @@ port:
 debug:
   True
 
+assay:
+  SCT
+
+layer:
+  data
+
 genes:
-  [Gpc5, Lingo2, Nrg1, Grm7]
+  [ENSMUSG00000089699, ENSMUSG00000120403, ENSMUSG00000025903, ENSMUSG00000033813, ENSMUSG00000033793, ENSMUSG00000025907]
 
 rds:
   testdata/seurat_small.rds
