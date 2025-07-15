@@ -14,7 +14,7 @@ base = rpackages.importr("base")
 seurat = rpackages.importr("Seurat")
 
 
-def load_seurat_rds(file_path):
+def load_seurat_rds(file_path, config_data={}):
     """Reads an RDS file containing a Seurat object and extracts relevant data."""
 
     if not os.path.exists(file_path):
@@ -23,24 +23,24 @@ def load_seurat_rds(file_path):
     ro.r("""
     load_seurat <- function(file_path) {
         library(Seurat)
-        obj <- readRDS(file_path)  # Load Seurat object
+        obj <- LoadSeuratRds(file_path)  # Load Seurat object
         return(obj)
     }
     """)
 
-    seurat_obj = ro.r["load_seurat"](file_path) # type: ignore
+    seurat_obj = ro.r["load_seurat"](file_path)  # type: ignore
 
     # Extract metadata and expression data
     ro.r("""
     extract_data <- function(seurat_obj) {
         metadata <- seurat_obj@meta.data  # Cell metadata
-        gene_matrix <- as.data.frame(as.matrix(seurat_obj@assays$SCT@data))  # Expression matrix
+        gene_matrix <- LayerData(seurat_obj, assay = "SCT", layer = "data") # Expression matrix
         umap <- as.data.frame(Embeddings(seurat_obj, reduction = "umap"))  # UMAP coordinates
         list(metadata = metadata, gene_matrix = gene_matrix, umap = umap)
     }
     """)
 
-    extracted = ro.r["extract_data"](seurat_obj) # type: ignore
+    extracted = ro.r["extract_data"](seurat_obj)  # type: ignore
 
     metadata_df = rpy2.robjects.pandas2ri.rpy2py(extracted[0])  # Convert to Pandas DataFrame
     gene_matrix_df = rpy2.robjects.pandas2ri.rpy2py(extracted[1])  # Gene expression matrix
