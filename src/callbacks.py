@@ -9,7 +9,7 @@ from data_loader import load_seurat_rds
 
 # Load the Seurat data
 RDS_FILE = os.getenv("DASH_RDS_FILE", "testdata/seurat_obj_downsampled.rds")
-metadata_df, gene_matrix_df, umap_df = load_seurat_rds(RDS_FILE)
+metadata_df, gene_matrix_df, umap_df = load_seurat_rds(RDS_FILE, "SCT", "data")
 
 # Some standard settings
 max_features = 60
