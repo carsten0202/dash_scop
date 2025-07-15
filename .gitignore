@@ -175,4 +175,5 @@ cython_debug/
 
 #iOS Stuff
 .DS_Store
-*/.DS_Store
+src/.DS_Store
+testdata/.DS_Store
