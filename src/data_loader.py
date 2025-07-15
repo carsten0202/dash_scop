@@ -34,7 +34,7 @@ def load_seurat_rds(file_path, config_data={}):
     ro.r("""
     extract_data <- function(seurat_obj) {
         metadata <- seurat_obj@meta.data  # Cell metadata
-        gene_matrix <- LayerData(seurat_obj, assay = "SCT", layer = "data") # Expression matrix
+        gene_matrix <- as.data.frame(LayerData(seurat_obj, assay = "SCT", layer = "data")) # Expression matrix
         umap <- as.data.frame(Embeddings(seurat_obj, reduction = "umap"))  # UMAP coordinates
         list(metadata = metadata, gene_matrix = gene_matrix, umap = umap)
     }
