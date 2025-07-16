@@ -21,8 +21,7 @@ class TokenAuthMiddleware:
 
     def __call__(self, environ, start_response):
         request = Request(environ)
-        if request.args.get("token") != self.token:
-            # Respond with 403 Forbidden
+        if request.args.get("token") != self.token:  # Respond with 403 Forbidden
             res = Response("403 Forbidden: Invalid or missing token", status=403)
             return res(environ, start_response)
         return self.app(environ, start_response)
@@ -40,6 +39,10 @@ def main(config_data):
     app.layout = get_layout(config_data)
     app.server.wsgi_app = TokenAuthMiddleware(app.server.wsgi_app, "SECRET_TOKEN")  # Wrap with middleware
     app.run(host=ip, port=port, debug=debug)
+
+    # Wait a moment for server to start
+    # time.sleep(1)
+    print(f"📊 Dash app available at http://{ip}:{port}/?token={debug}")
 
 
 if __name__ == "__main__":
