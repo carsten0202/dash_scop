@@ -1,4 +1,5 @@
 import os
+import secrets
 
 from dash import Dash
 from werkzeug.wrappers import Request, Response
@@ -27,22 +28,17 @@ class TokenAuthMiddleware:
         return self.app(environ, start_response)
 
 
-# Define your secret token
-# SECRET_TOKEN = os.environ.get("DASH_TOKEN", "abc123secretHEX")
-
-
 def main(config_data):
     ip = os.getenv("DASH_IP", "127.0.0.1")
-    port = str(os.getenv("DASH_PORT", 8050))
+    port = os.getenv("DASH_PORT", "8050")
     debug = os.getenv("DASH_DEBUG", "True") == "True"
+    token = os.environ.get("DASH_TOKEN", secrets.token_hex(32))  # 64-character hex string (256 bits)
+
+    print(f"Dash app available at http://{ip}:{port}/?token={token}")
 
     app.layout = get_layout(config_data)
-    app.server.wsgi_app = TokenAuthMiddleware(app.server.wsgi_app, "SECRET_TOKEN")  # Wrap with middleware
+    app.server.wsgi_app = TokenAuthMiddleware(app.server.wsgi_app, token)  # Wrap with middleware
     app.run(host=ip, port=port, debug=debug)
-
-    # Wait a moment for server to start
-    # time.sleep(1)
-    print(f"📊 Dash app available at http://{ip}:{port}/?token={debug}")
 
 
 if __name__ == "__main__":
