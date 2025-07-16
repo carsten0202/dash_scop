@@ -1,5 +1,6 @@
 import json
 import os
+import secrets
 
 import click
 import yaml
@@ -51,4 +52,5 @@ def load_config(config_file):
 
 
 if __name__ == "__main__":
+    os.environ["DASH_TOKEN"] = secrets.token_hex(32)  # 64-character hex string (256 bits)
     run()
