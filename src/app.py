@@ -24,16 +24,17 @@ class TokenAuthMiddleware:
 
         # Allow Dash internal and static routes
         if request.path.startswith("/_dash-") or request.path.startswith("/assets/"):
-            return self.wsgi_app(environ, start_response)
+            return self.app(environ, start_response)
 
         # Allow favicon or other extras if needed
         if request.path in ["/favicon.ico"]:
-            return self.wsgi_app(environ, start_response)
+            return self.app(environ, start_response)
 
         # Otherwise, check token
         if request.args.get("token") != self.token:  # Respond with 403 Forbidden
             res = Response("403 Forbidden: Invalid or missing token", status=403)
             return res(environ, start_response)
+
         return self.app(environ, start_response)
 
 
@@ -50,5 +51,5 @@ def main(config_data):
     app.run(host=ip, port=port, debug=debug)
 
 
-# if __name__ == "__main__":
-#    main({})
+if __name__ == "__main__":
+    main({})
