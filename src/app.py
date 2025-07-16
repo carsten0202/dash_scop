@@ -35,21 +35,14 @@ def main(config_data):
     token = os.environ.get("DASH_TOKEN", secrets.token_hex(32))  # 64-character hex string (256 bits)
     token = "SECRET_TOKEN"
 
-    try:
-        import traceback
-
-        raise ValueError("Testing")
-    except Exception as e:
-        print("test")
-        print(e)
-        print(traceback.format_exc())
+    import traceback
 
     traceback.print_stack()
     print(f"Dash app available at http://{ip}:{port}/?token={token}")
 
     app.server.wsgi_app = TokenAuthMiddleware(app.server.wsgi_app, token)  # Wrap with middleware
     app.layout = get_layout(config_data)
-    app.run_server(host=ip, port=port, debug=debug)
+    # app.run(host=ip, port=port, debug=debug)
 
 
 # if __name__ == "__main__":
