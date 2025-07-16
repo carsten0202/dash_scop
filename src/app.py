@@ -1,5 +1,4 @@
 import os
-import secrets
 
 from dash import Dash
 from werkzeug.wrappers import Request, Response
@@ -22,6 +21,16 @@ class TokenAuthMiddleware:
 
     def __call__(self, environ, start_response):
         request = Request(environ)
+
+        # Allow Dash internal and static routes
+        if request.path.startswith("/_dash-") or request.path.startswith("/assets/"):
+            return self.wsgi_app(environ, start_response)
+
+        # Allow favicon or other extras if needed
+        if request.path in ["/favicon.ico"]:
+            return self.wsgi_app(environ, start_response)
+
+        # Otherwise, check token
         if request.args.get("token") != self.token:  # Respond with 403 Forbidden
             res = Response("403 Forbidden: Invalid or missing token", status=403)
             return res(environ, start_response)
@@ -34,15 +43,11 @@ def main(config_data):
     debug = os.getenv("DASH_DEBUG", "True") == "True"
     token = os.environ.get("DASH_TOKEN", "SECRET_TOKEN")  # 64-character hex string (256 bits)
 
-    import traceback
-
-    traceback.print_stack()
-
-    print(f"Dash app available at http://{ip}:{port}/?token={token}")
+    print(f"\n[INFO] Dash app available at http://{ip}:{port}/?token={token}")
 
     app.server.wsgi_app = TokenAuthMiddleware(app.server.wsgi_app, token)  # Wrap with middleware
     app.layout = get_layout(config_data)
-    # app.run(host=ip, port=port, debug=debug)
+    app.run(host=ip, port=port, debug=debug)
 
 
 # if __name__ == "__main__":
