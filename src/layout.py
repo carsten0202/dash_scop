@@ -1,5 +1,6 @@
 from dash import dcc, html
 
+
 def get_layout(config_data):
     layout = html.Div(
         [
