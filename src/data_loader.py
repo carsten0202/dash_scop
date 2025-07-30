@@ -1,13 +1,9 @@
 import os
 
 import rpy2.robjects as ro
-import rpy2.robjects.numpy2ri
+#import rpy2.robjects.numpy2ri
 import rpy2.robjects.packages as rpackages
-import rpy2.robjects.pandas2ri
-
-# Activate automatic conversion between R and Python
-rpy2.robjects.numpy2ri.activate()
-rpy2.robjects.pandas2ri.activate()
+import rpy2.robjects.pandas2ri as pd2ri
 
 # Load R packages
 base = rpackages.importr("base")
@@ -42,9 +38,9 @@ def load_seurat_rds(file_path, assay="SCT", layer="data"):
 
     extracted = ro.r["extract_data"](seurat_obj, assay, layer)  # type: ignore
 
-    metadata_df = rpy2.robjects.pandas2ri.rpy2py(extracted[0])  # Convert to Pandas DataFrame
-    gene_matrix_df = rpy2.robjects.pandas2ri.rpy2py(extracted[1])  # Gene expression matrix
-    umap_df = rpy2.robjects.pandas2ri.rpy2py(extracted[2])  # UMAP data
+    metadata_df = pd2ri.rpy2py(extracted[0])  # Convert to Pandas DataFrame
+    gene_matrix_df = pd2ri.rpy2py(extracted[1])  # Gene expression matrix
+    umap_df = pd2ri.rpy2py(extracted[2])  # UMAP data
     umap_df.columns = umap_df.columns.str.upper()
 
     return metadata_df, gene_matrix_df, umap_df
