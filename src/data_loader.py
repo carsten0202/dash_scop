@@ -1,7 +1,6 @@
 import os
 
 import rpy2.robjects as ro
-#import rpy2.robjects.numpy2ri
 import rpy2.robjects.packages as rpackages
 import rpy2.robjects.pandas2ri as pd2ri
 
