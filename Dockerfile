@@ -35,7 +35,7 @@ RUN R --quiet -e 'if (!require("BiocManager", quietly = TRUE)) install.packages(
 
 # Ensure R can find Seurat at runtime
 ENV R_LIBS_SITE=/usr/local/lib/R/site-library
-
+ENV R_LIBS_USER=/blah
 
 # Create a non-privileged user
 ARG UID=10001
