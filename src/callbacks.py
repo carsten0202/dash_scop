@@ -1,10 +1,14 @@
 import io
 import os
+import time
+from pathlib import Path
 
+import dash_bootstrap_components as dbc
 import numpy as np
 import plotly.express as px
-from dash import Input, Output, dcc, html
+from dash import Input, Output, State, dcc, html, no_update
 
+import settings
 from data_loader import load_seurat_rds
 
 # Load the Seurat data
@@ -30,6 +34,71 @@ def register_callbacks(app):
         """Cache filtered expression data to avoid recomputation."""
         filtered_cells = metadata_df.index[metadata_df["seurat_clusters"].isin(selected_cell_types)]
         return gene_matrix_df.loc[selected_genes, filtered_cells]
+
+    @app.callback(
+        Output("file-list", "data"),
+        Input("rescan", "n_clicks"),
+        Input("init", "n_intervals"),
+        prevent_initial_call=True,
+    )
+    def refresh_file_list(_clicks, _init):
+        files = scan_files()
+        # include simple metadata (mtime, size) if you like
+        enriched = []
+        for rel in files:
+            p = (settings.BASE_DIR / rel).resolve()
+            st = p.stat()
+            enriched.append(
+                {
+                    "rel": rel,
+                    "size": st.st_size,
+                    "mtime": int(st.st_mtime),
+                }
+            )
+        return enriched
+
+    @app.callback(
+        Output("file-dropdown", "options"),
+        Input("file-list", "data"),
+        Input("show-subfolders", "value"),
+    )
+    def populate_dropdown(file_list, show_flags):
+        if not file_list:
+            return []
+        show_sub = "sub" in (show_flags or [])
+        opts = []
+        for item in file_list:
+            rel = item["rel"]
+            label = rel if show_sub else Path(rel).name
+            opts.append({"label": label, "value": rel})
+        return opts
+
+    @app.callback(
+        Output("selected-info", "children"),
+        Input("file-dropdown", "value"),
+        State("file-list", "data"),
+        prevent_initial_call=True,
+    )
+    def handle_selection(rel_value, file_list):
+        if not rel_value:
+            return no_update
+        abs_p = safe_abs_path(rel_value)
+        try:
+            # obj = load_seurat(abs_p)  # <-- you now have the Seurat object via rpy2
+            # You probably won't want to send the object to the browser; just confirm and kick off downstream steps.
+            st = abs_p.stat()
+            return dbc.Alert(
+                [
+                    html.Strong("Loaded: "),
+                    html.Code(str(abs_p)),
+                    html.Br(),
+                    f"Size: {st.st_size / 1_048_576:.2f} MB · Modified: {time.ctime(st.st_mtime)}",
+                ],
+                color="success",
+                dismissable=True,
+            )
+        except Exception as e:
+            return dbc.Alert(f"Failed to load: {e}", color="danger", dismissable=True)
 
     @app.callback(
         Output("gene-selector", "options"),
@@ -167,3 +236,24 @@ def register_callbacks(app):
         # Encode SVG content as a downloadable file
         encoded_svg = svg_buffer.getvalue()
         return dcc.send_bytes(encoded_svg, filename="plot.svg")
+
+
+def scan_files():
+    """Return a sorted list of relative file paths under BASE_DIR with allowed extensions."""
+    out = []
+    for root, _, files in os.walk(settings.BASE_DIR):
+        for f in files:
+            p = Path(root) / f
+            if p.suffix.lower() in settings.ALLOWED_EXT:
+                rel = p.resolve().relative_to(settings.BASE_DIR)
+                out.append(str(rel).replace(os.sep, "/"))
+    out.sort()
+    return out
+
+
+def safe_abs_path(rel_path: str) -> Path:
+    """Resolve a user-chosen relative path into an absolute path under BASE_DIR safely."""
+    abs_p = (settings.BASE_DIR / rel_path).resolve()
+    if not str(abs_p).startswith(str(settings.BASE_DIR)):  # prevent path traversal
+        raise ValueError("Invalid path selection")
+    return abs_p
