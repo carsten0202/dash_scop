@@ -1,11 +1,7 @@
-from pathlib import Path
-
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
-# --- Settings
-BASE_DIR = Path("").resolve()  # your server folder
-ALLOWED_EXT = {".rds"}  # adjust as needed
+import settings
 
 
 def get_layout(config_data):
@@ -19,7 +15,7 @@ def get_layout(config_data):
                             dcc.Dropdown(
                                 id="file-dropdown",
                                 options=[],  # filled by callback
-                                placeholder=f"Browse {BASE_DIR}…",
+                                placeholder=f"Browse {settings.BASE_DIR}…",
                                 searchable=True,
                                 clearable=False,
                                 style={"width": "100%"},
