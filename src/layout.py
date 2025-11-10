@@ -86,6 +86,7 @@ def get_layout(config_data):
                 html.Button("Download Plot as SVG", id="download-btn"),
                 dcc.Download(id="download-plot"),
             ]
-        )
+        ),
+        fluid=True,
     )
     return layout
