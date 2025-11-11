@@ -3,43 +3,33 @@ import os
 import rpy2.robjects as ro
 import rpy2.robjects.packages as rpackages
 import rpy2.robjects.pandas2ri as pd2ri
+from rpy2.robjects import default_converter
+from rpy2.robjects.conversion import localconverter
 
 # Load R packages
-base = rpackages.importr("base")
 seurat = rpackages.importr("Seurat")
 
 
-def load_seurat_rds(file_path, assay="SCT", layer="data"):
+def load_seurat_rds(file_path: str, assay="SCT", layer="data"):
     """Reads an RDS file containing a Seurat object and extracts relevant data."""
-
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File {file_path} not found.")
 
-    ro.r("""
-    load_seurat <- function(file_path) {
-        library(Seurat)
-        obj <- LoadSeuratRds(file_path)  # Load Seurat object
-        return(obj)
-    }
-    """)
+    with localconverter(default_converter + pd2ri.converter):
+        ro.r("""
+        extract_data <- function(seurat_obj, assay, layer) {
+            metadata <- seurat_obj@meta.data  # Cell metadata
+            gene_matrix <- as.data.frame(LayerData(seurat_obj, assay = assay, layer = layer)) # Expression matrix
+            umap <- as.data.frame(Embeddings(seurat_obj, reduction = "umap"))  # UMAP coordinates
+            return(list(metadata = metadata, gene_matrix = gene_matrix, umap = umap))
+        }
+        """)
 
-    seurat_obj = ro.r["load_seurat"](file_path)  # type: ignore
+        seurat_obj = ro.r["LoadSeuratRds"](str(file_path))  # Load Seurat RDS file
+        extracted = ro.r["extract_data"](seurat_obj, assay, layer)  # type: ignore
+        metadata_df = extracted["metadata"]  # Extract metadata as pandas DataFrame
+        gene_matrix_df = extracted["gene_matrix"]  # Gene expression matrix as pandas DataFrame
+        umap_df = extracted["umap"]  # UMAP data as pandas DataFrame, and set column names to uppercase
+        umap_df.columns = umap_df.columns.str.upper()
 
-    # Extract metadata and expression data
-    ro.r("""
-    extract_data <- function(seurat_obj, assay, layer) {
-        metadata <- seurat_obj@meta.data  # Cell metadata
-        gene_matrix <- as.data.frame(LayerData(seurat_obj, assay = assay, layer = layer)) # Expression matrix
-        umap <- as.data.frame(Embeddings(seurat_obj, reduction = "umap"))  # UMAP coordinates
-        list(metadata = metadata, gene_matrix = gene_matrix, umap = umap)
-    }
-    """)
-
-    extracted = ro.r["extract_data"](seurat_obj, assay, layer)  # type: ignore
-
-    metadata_df = pd2ri.rpy2py(extracted[0])  # Convert to Pandas DataFrame
-    gene_matrix_df = pd2ri.rpy2py(extracted[1])  # Gene expression matrix
-    umap_df = pd2ri.rpy2py(extracted[2])  # UMAP data
-    umap_df.columns = umap_df.columns.str.upper()
-
-    return metadata_df, gene_matrix_df, umap_df
+        return metadata_df, gene_matrix_df, umap_df
