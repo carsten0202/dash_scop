@@ -15,8 +15,6 @@ from data_loader import load_seurat_rds
 RDS_FILE = os.getenv("DASH_RDS_FILE", "testdata/seurat_obj_downsampled.rds")
 metadata_df, gene_matrix_df, umap_df = load_seurat_rds(RDS_FILE, "SCT", "data")
 
-# Some standard settings
-max_features = 60
 
 # Store the last generated figure
 last_figure = None
@@ -76,15 +74,15 @@ def register_callbacks(app):
     @app.callback(
         Output("selected-info", "children"),
         Input("file-dropdown", "value"),
-        State("file-list", "data"),
         prevent_initial_call=True,
     )
-    def handle_selection(rel_value, file_list):
+    def handle_selection(rel_value):
         if not rel_value:
             return no_update
         abs_p = safe_abs_path(rel_value)
         try:
-            # obj = load_seurat(abs_p)  # <-- you now have the Seurat object via rpy2
+            global metadata_df, gene_matrix_df, umap_df
+            metadata_df, gene_matrix_df, umap_df = load_seurat_rds(abs_p)
             # You probably won't want to send the object to the browser; just confirm and kick off downstream steps.
             st = abs_p.stat()
             return dbc.Alert(
@@ -128,9 +126,10 @@ def register_callbacks(app):
         Input("plot-selector", "value"),
         Input("gene-selector", "value"),
         Input("cell-type-filter", "value"),
+        Input("selected-info", "children"),
         prevent_initial_call=False,
     )
-    def update_plots(plot_type, selected_genes, selected_cell_types):
+    def update_plots(plot_type, selected_genes, selected_cell_types, selected_file_info):
         global last_figure  # Store last figure for export
 
         if selected_genes is None or len(selected_genes) == 0:
@@ -144,12 +143,12 @@ def register_callbacks(app):
         plot_figures = []
 
         try:
-            if plot_type == "boxplot" and len(selected_genes) <= max_features:
+            if plot_type == "boxplot" and len(selected_genes) <= settings.max_features:
                 df_melted = filtered_expression.melt(var_name="Cell", value_name="Expression")
                 df_melted["CellType"] = df_melted["Cell"].map(metadata_df["seurat_clusters"])
                 df_melted["Gene"] = np.tile(selected_genes, len(df_melted) // len(selected_genes))
 
-                if len(selected_genes) <= max_features:
+                if len(selected_genes) <= settings.max_features:
                     for gene in selected_genes:
                         last_figure = px.box(
                             df_melted[df_melted["Gene"] == gene],
@@ -171,7 +170,7 @@ def register_callbacks(app):
                 )
                 plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
-            elif plot_type == "violin" and len(selected_genes) <= max_features:
+            elif plot_type == "violin" and len(selected_genes) <= settings.max_features:
                 df_melted = filtered_expression.melt(var_name="Cell", value_name="Expression")
                 df_melted["CellType"] = df_melted["Cell"].map(metadata_df["seurat_clusters"])
                 df_melted["Gene"] = np.tile(selected_genes, len(df_melted) // len(selected_genes))
@@ -195,9 +194,9 @@ def register_callbacks(app):
                 )
 
                 # Don't show labels if there's too many
-                if len(selected_genes) > max_features:
+                if len(selected_genes) > settings.max_features:
                     last_figure.update_yaxes(showticklabels=False)
-                if len(filtered_expression.columns) > 2 * max_features:
+                if len(filtered_expression.columns) > 2 * settings.max_features:
                     last_figure.update_xaxes(showticklabels=False)
 
                 plot_figures.append(
@@ -207,8 +206,8 @@ def register_callbacks(app):
             else:
                 if len(selected_genes) == len(gene_matrix_df.index):
                     raise ValueError("Please select one or more features.")
-                elif len(selected_genes) > max_features:
-                    raise ValueError(f"Please select no more than {max_features} features.")
+                elif len(selected_genes) > settings.max_features:
+                    raise ValueError(f"Please select no more than {settings.max_features} features.")
                 else:
                     raise ValueError("Something went wrong?")
 
@@ -244,7 +243,7 @@ def scan_files():
     for root, _, files in os.walk(settings.BASE_DIR):
         for f in files:
             p = Path(root) / f
-            if p.suffix.lower() in settings.ALLOWED_EXT:
+            if p.suffix.lower() in settings.RDS_ALLOWED_EXT:
                 rel = p.resolve().relative_to(settings.BASE_DIR)
                 out.append(str(rel).replace(os.sep, "/"))
     out.sort()
