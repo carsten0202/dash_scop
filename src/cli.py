@@ -5,10 +5,7 @@ import secrets
 import click
 import yaml
 
-DEFAULT_IP = os.getenv("DASH_IP", "127.0.0.1")
-DEFAULT_PORT = int(os.getenv("DASH_PORT", 8050))
-DEFAULT_DEBUG = os.getenv("DASH_DEBUG", "True") == "True"
-DEFAULT_RDS_FILE = "testdata/seurat_obj_downsampled.rds"
+from settings import DEFAULT_DEBUG, DEFAULT_IP, DEFAULT_PORT, DEFAULT_RDS_FILE
 
 
 @click.command()
