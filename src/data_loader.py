@@ -27,9 +27,13 @@ def load_seurat_rds(file_path: str, assay="SCT", layer="data"):
 
         seurat_obj = ro.r["LoadSeuratRds"](str(file_path))  # Load Seurat RDS file
         extracted = ro.r["extract_data"](seurat_obj, assay, layer)  # type: ignore
-        metadata_df = extracted["metadata"]  # Extract metadata as pandas DataFrame
+        metadata_df = extracted["metadata"][
+            [x for x in extracted["metadata"].columns if extracted["metadata"][x].dtype in ["object", "category"]]
+        ]  # Extract columns from metadata as pandas DataFrame that are of type 'object' or 'categorical'
         gene_matrix_df = extracted["gene_matrix"]  # Gene expression matrix as pandas DataFrame
-        umap_df = extracted["umap"]  # UMAP data as pandas DataFrame, and set column names to uppercase
-        umap_df.columns = umap_df.columns.str.upper()
+        umap_df = extracted["umap"]  # UMAP data as pandas DataFrame...
+        umap_df.columns = umap_df.columns.str.upper()  # ...and set column names to uppercase
+
+        print(f"{metadata_df}")
 
         return metadata_df, gene_matrix_df, umap_df
