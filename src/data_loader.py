@@ -24,7 +24,6 @@ def load_seurat_rds(file_path: str, assay="SCT", layer="data"):
             return(list(metadata = metadata, gene_matrix = gene_matrix, umap = umap))
         }
         """)
-
         seurat_obj = ro.r["LoadSeuratRds"](str(file_path))  # Load Seurat RDS file
         extracted = ro.r["extract_data"](seurat_obj, assay, layer)  # type: ignore
         metadata_df = extracted["metadata"][
