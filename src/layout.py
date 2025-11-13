@@ -39,7 +39,8 @@ def get_layout(config_data):
                     className="gy-2",
                 ),
                 html.Div(id="selected-info", className="mt-3"),
-                dcc.Store(id="file-list"),
+                dcc.Store(id="file-list"),  # holds list of files
+                dcc.Store(id="dataset-key"),  # holds just the key string
                 dcc.Interval(id="init", interval=50, n_intervals=0, max_intervals=1),  # populate once on load
                 # Dropdown for selecting the plot type
                 html.Label("Select a plot type:"),
