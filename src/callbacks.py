@@ -6,7 +6,8 @@ from pathlib import Path
 import dash_bootstrap_components as dbc
 import numpy as np
 import plotly.express as px
-from dash import Input, Output, State, dcc, html, no_update
+from dash import Input, Output, dcc, html, no_update
+from flask_caching import Cache
 
 import settings
 from data_loader import load_seurat_rds
@@ -21,8 +22,6 @@ last_figure = None
 
 
 def register_callbacks(app):
-    from flask_caching import Cache
-
     # Initialize Flask-Caching **after** app creation
     cache = Cache(config={"CACHE_TYPE": "simple"})
     cache.init_app(app.server)
