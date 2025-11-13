@@ -1,9 +1,10 @@
-dash
-pandas
-plotly
-rpy2
-numpy
 click
-pyyaml
+dash
+dash_bootstrap_components
 flask_caching
 kaleido
+numpy
+pandas
+plotly
+pyyaml
+rpy2
