@@ -35,4 +35,4 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
 
         print(f"{metadata_df}")
 
-        return metadata_df, gene_matrix_df, umap_df
+        return {"gene_counts": gene_matrix_df, "metadata": metadata_df, "umap": umap_df}
