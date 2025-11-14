@@ -10,7 +10,7 @@ from rpy2.robjects.conversion import localconverter
 seurat = rpackages.importr("Seurat")
 
 
-def load_seurat_rds(file_path: str, assay="SCT", layer="data"):
+def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"):
     """Reads an RDS file containing a Seurat object and extracts relevant data."""
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File {file_path} not found.")
