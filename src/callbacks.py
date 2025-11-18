@@ -246,7 +246,7 @@ def register_callbacks(app):
 
         # Encode SVG content as a downloadable file
         encoded_svg = svg_buffer.getvalue()
-        return dcc.send_bytes(encoded_svg, filename="plot.svg")
+        return dcc.send_bytes(encoded_svg, filename="plot.svg") # type: ignore
 
 
 def scan_files():
