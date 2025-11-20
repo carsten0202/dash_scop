@@ -12,6 +12,11 @@ def get_layout(config_data):
                 dbc.Row(
                     [
                         dbc.Col(
+                            dbc.Button("Rescan", id="rescan", n_clicks=0, color="secondary"),
+                            xs=2,
+                            lg=1,
+                        ),
+                        dbc.Col(
                             dcc.Dropdown(
                                 id="file-dropdown",
                                 options=[],  # filled by callback
@@ -20,11 +25,7 @@ def get_layout(config_data):
                                 clearable=False,
                                 style={"width": "100%"},
                             ),
-                            md=8,
-                        ),
-                        dbc.Col(
-                            dbc.Button("Rescan", id="rescan", n_clicks=0, color="secondary"),
-                            md=2,
+                            xs=True,
                         ),
                         dbc.Col(
                             dbc.Checklist(
@@ -33,10 +34,14 @@ def get_layout(config_data):
                                 id="show-subfolders",
                                 switch=True,
                             ),
-                            md=2,
+                            xs=4,
+                            md=3,
+                            xl=2,
+                            align="center",
                         ),
                     ],
                     className="gy-2",
+                    justify="between",
                 ),
                 html.Div(id="selected-info", className="mt-3"),
                 dcc.Store(id="file-list"),  # holds list of files
@@ -86,24 +91,11 @@ def get_layout(config_data):
                 #        dcc.Store(id="filter-schema-store", data=filter_schema),
                 #        html.H2("Dynamic filters demo"),
                 # Top bar: button to open filters + active filter summary
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            dbc.Button("Filters", id="open-filter-offcanvas", n_clicks=0),
-                            width="auto",
-                        ),
-                        dbc.Col(
-                            html.Div(
-                                id="active-filters-text",
-                                style={"paddingTop": "0.5rem", "fontStyle": "italic"},
-                            ),
-                        ),
-                    ],
-                    align="center",
-                    className="mb-3",
+                dbc.Button("Filters", id="open-filter-offcanvas", n_clicks=0),
+                html.Div(
+                    id="active-filters-text",
+                    style={"paddingTop": "0.5rem", "fontStyle": "italic"},
                 ),
-                # Main figure
-                #        dcc.Graph(id="main-plot"),
                 # Off-canvas drawer holding all filters
                 dbc.Offcanvas(
                     id="filter-offcanvas",
