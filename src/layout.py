@@ -82,8 +82,41 @@ def get_layout(config_data):
                 # Download button and component
                 html.Button("Download Plot as SVG", id="download-btn"),
                 dcc.Download(id="download-plot"),
+                # Store for the schema – in your app this could be populated by a callback
+                #        dcc.Store(id="filter-schema-store", data=filter_schema),
+                #        html.H2("Dynamic filters demo"),
+                # Top bar: button to open filters + active filter summary
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            dbc.Button("Filters", id="open-filter-offcanvas", n_clicks=0),
+                            width="auto",
+                        ),
+                        dbc.Col(
+                            html.Div(
+                                id="active-filters-text",
+                                style={"paddingTop": "0.5rem", "fontStyle": "italic"},
+                            ),
+                        ),
+                    ],
+                    align="center",
+                    className="mb-3",
+                ),
+                # Main figure
+                #        dcc.Graph(id="main-plot"),
+                # Off-canvas drawer holding all filters
+                dbc.Offcanvas(
+                    id="filter-offcanvas",
+                    title="Filters",
+                    is_open=False,
+                    placement="end",
+                    children=html.Div(id="all-filters"),
+                    scrollable=True,
+                    backdrop=True,
+                ),
             ]
         ),
         fluid=True,
     )
+
     return layout
