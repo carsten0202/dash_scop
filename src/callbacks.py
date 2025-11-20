@@ -1,9 +1,9 @@
 import io
 import os
 import time
+import uuid
 from pathlib import Path
 
-import uuid
 import dash_bootstrap_components as dbc
 import numpy as np
 import plotly.express as px
@@ -18,8 +18,8 @@ RDS_FILE = os.getenv("DASH_RDS_FILE", "testdata/seurat_obj_downsampled.rds")
 
 # Code to be deleted. No reason to preload a dataset if the user selects one
 data_dfs = load_seurat_rds(RDS_FILE, "SCT", "data")
-gene_matrix_df = data_dfs['gene_counts']
-metadata_df = data_dfs['metadata']
+gene_matrix_df = data_dfs["gene_counts"]
+metadata_df = data_dfs["metadata"]
 
 
 # Store the last generated figure
@@ -85,16 +85,20 @@ def register_callbacks(app):
         if not rel_value:
             return no_update
         abs_p = safe_abs_path(rel_value)
-        dataset_id = str(uuid.uuid4()) # generate a random ID for the dataset we're about to load
+        dataset_id = str(uuid.uuid4())  # generate a random ID for the dataset we're about to load
         # TODO: Would be nice to enable some kind of actual caching here, so that we do not re-load the data if the user re-selects a dataset...
         try:
             st = abs_p.stat()
-            data_dfs = load_seurat_rds(abs_p) # Don't send the object to the browser; just confirm and store downstream.
-            cache.set(dataset_id, data_dfs, timeout=None) # store it in the cache, timeout=None or 0 => use default (=> no expiry)
+            data_dfs = load_seurat_rds(
+                abs_p
+            )  # Don't send the object to the browser; just confirm and store downstream.
+            cache.set(
+                dataset_id, data_dfs, timeout=None
+            )  # store it in the cache, timeout=None or 0 => use default (=> no expiry)
 
             global metadata_df, gene_matrix_df
-            gene_matrix_df = data_dfs['gene_counts']
-            metadata_df = data_dfs['metadata']
+            gene_matrix_df = data_dfs["gene_counts"]
+            metadata_df = data_dfs["metadata"]
 
             return dataset_id, dbc.Alert(
                 [
@@ -172,7 +176,7 @@ def register_callbacks(app):
                         )
 
             elif plot_type == "umap":
-                umap_df = cache.get(dataset_key)["umap"] # Get umap data from cache
+                umap_df = cache.get(dataset_key)["umap"]  # Get umap data from cache
                 last_figure = px.scatter(
                     umap_df.loc[filtered_cells],
                     x="UMAP_1",
@@ -246,7 +250,7 @@ def register_callbacks(app):
 
         # Encode SVG content as a downloadable file
         encoded_svg = svg_buffer.getvalue()
-        return dcc.send_bytes(encoded_svg, filename="plot.svg") # type: ignore
+        return dcc.send_bytes(encoded_svg, filename="plot.svg")  # type: ignore
 
 
 def scan_files():
