@@ -1,5 +1,6 @@
 import os
 
+import dash_bootstrap_components as dbc
 from dash import Dash
 from werkzeug.wrappers import Request, Response
 
@@ -7,7 +8,7 @@ from callbacks import register_callbacks
 from layout import get_layout
 
 # Initialize Dash app
-app = Dash(__name__)
+app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 # Register callbacks
 register_callbacks(app)
