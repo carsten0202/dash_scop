@@ -19,7 +19,6 @@ RDS_FILE = os.getenv("DASH_RDS_FILE", "testdata/seurat_obj_downsampled.rds")
 # Code to be deleted. No reason to preload a dataset if the user selects one
 data_dfs = load_seurat_rds(RDS_FILE, "SCT", "data")
 gene_matrix_df = data_dfs["gene_counts"]
-metadata_df = data_dfs["metadata"]
 
 
 # Store the last generated figure
@@ -81,7 +80,7 @@ def register_callbacks(app):
         Input("file-dropdown", "value"),
         prevent_initial_call=True,
     )
-    def handle_selection(rel_value):
+    def handle_file_selection(rel_value):
         if not rel_value:
             return no_update
         abs_p = safe_abs_path(rel_value)
