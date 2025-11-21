@@ -103,14 +103,7 @@ def register_callbacks(app):
             gene_matrix_df = data_dfs["gene_counts"]
             metadata_df = data_dfs["metadata"]
 
-            filter_schema = [{
-                "name": "cell_type",
-                "label": "Cell type",
-                "type": "categorical",
-#                "values": [],  # to be filled dynamically
-                "values": sorted(metadata_df.columns),
-                "default": [],  # empty means "no filter"
-            }]
+            filter_schema = filter_from_metadata(metadata_df)
 
             return dataset_id, filter_schema, dbc.Alert(
                 [
@@ -176,10 +169,11 @@ def register_callbacks(app):
         Input("plot-selector", "value"),
         Input("gene-selector", "value"),
         Input("cell-type-filter", "value"),
+        Input("filter-schema-store","data"),
         Input("dataset-key", "data"),
         prevent_initial_call=True,
     )
-    def update_plots(plot_type, selected_genes, selected_cell_types, dataset_key):
+    def update_plots(plot_type, selected_genes, selected_cell_types, selected_stuff, dataset_key):
         global last_figure  # Store last figure for export
 
         seurat_data = cache.get(dataset_key)  # Get seurat data from cache
@@ -189,10 +183,8 @@ def register_callbacks(app):
         if selected_cell_types is None or len(selected_cell_types) == 0:
             selected_cell_types = metadata_df["seurat_clusters"].unique()
 
-        filtered_cells = metadata_df
+        filtered_cells = metadata_df.index[metadata_df["seurat_clusters"].isin(selected_cell_types)]
         filtered_expression = get_filtered_data(selected_genes, selected_cell_types, metadata_df)
-#        filtered_cells = metadata_df.index[metadata_df["seurat_clusters"].isin(selected_cell_types)]
-#        filtered_expression = get_filtered_data(selected_genes, selected_cell_types, metadata_df)
 
         plot_figures = []
 
@@ -290,6 +282,26 @@ def register_callbacks(app):
         # Encode SVG content as a downloadable file
         encoded_svg = svg_buffer.getvalue()
         return dcc.send_bytes(encoded_svg, filename="plot.svg")  # type: ignore
+
+
+# -------------------------------------------------------------------
+# Helper to build the filter schema from the metadata
+def filter_from_metadata(metadata_df):
+    filter_schema = []
+    for series in [metadata_df[c] for c in metadata_df.columns]:  # Loop over series in metadata data frame
+        if series.dtype in ["object", "category"]:
+            f = {
+                "name": series.name,
+                "label": "Seurat@meta.data$" + series.name,
+                "type": "categorical",
+                "values": sorted(series.unique()),
+                "default": [],  # empty means "no filter selected"
+            }
+        else:
+            f = {}
+        filter_schema.append(f)
+    return filter_schema
+# -------------------------------------------------------------------
 
 
 # -------------------------------------------------------------------
