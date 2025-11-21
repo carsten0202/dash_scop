@@ -11,16 +11,12 @@ seurat = importr("Seurat")
 stats = importr("stats")
 
 
-# use the attribute on the robjects module
-default_converter = ro.default_converter
-
-
 def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"):
     """Reads an RDS file containing a Seurat object and extracts relevant data."""
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File {file_path} not found.")
 
-    with localconverter(default_converter + pandas2ri.converter):
+    with localconverter(ro.default_converter + pandas2ri.converter):
         ro.r("""
         extract_data <- function(seurat_obj, assay, layer) {
             metadata <- seurat_obj@meta.data  # Cell metadata

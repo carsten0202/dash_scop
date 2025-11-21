@@ -19,7 +19,6 @@ RDS_FILE = os.getenv("DASH_RDS_FILE", "testdata/seurat_obj_downsampled.rds")
 # Code to be deleted. No reason to preload a dataset if the user selects one
 data_dfs = load_seurat_rds(RDS_FILE, "SCT", "data")
 gene_matrix_df = data_dfs["gene_counts"]
-metadata_df = data_dfs["metadata"]
 
 
 # Store the last generated figure
@@ -81,7 +80,7 @@ def register_callbacks(app):
         Input("file-dropdown", "value"),
         prevent_initial_call=True,
     )
-    def handle_selection(rel_value):
+    def handle_file_selection(rel_value):
         if not rel_value:
             return no_update
         abs_p = safe_abs_path(rel_value)
@@ -144,6 +143,15 @@ def register_callbacks(app):
         if n_clicks:
             return not is_open
         return is_open
+
+    @app.callback(
+        Output("all-filters", "children"),
+        Input("filter-schema-store", "data"),
+    )
+    def build_filter_components(schema):
+        if not schema:
+            return html.Div("No filters defined.")
+        return [make_filter_component(f) for f in schema]
 
     @app.callback(
         Output("plot-container", "children"),
@@ -261,6 +269,53 @@ def register_callbacks(app):
         # Encode SVG content as a downloadable file
         encoded_svg = svg_buffer.getvalue()
         return dcc.send_bytes(encoded_svg, filename="plot.svg")  # type: ignore
+
+
+# -------------------------------------------------------------------
+# Helper to build a control for a single filter definition
+def make_filter_component(f):
+    filter_id = {"type": "filter-control", "name": f["name"]}
+
+    if f["type"] == "categorical":
+        return html.Div(
+            [
+                html.Label(f["label"]),
+                dcc.Dropdown(
+                    id=filter_id,
+                    options=[{"label": v, "value": v} for v in f["values"]],
+                    multi=True,
+                    value=f.get("default", []),
+                    placeholder=f"Select {f['label'].lower()}",
+                ),
+            ],
+            style={"marginBottom": "1rem"},
+        )
+
+    if f["type"] == "numeric_range":
+        return html.Div(
+            [
+                html.Label(f"{f['label']} range"),
+                dcc.RangeSlider(
+                    id=filter_id,
+                    min=f["min"],
+                    max=f["max"],
+                    step=f["step"],
+                    value=f.get("default", [f["min"], f["max"]]),
+                    tooltip={"always_visible": False, "placement": "bottom"},
+                ),
+                html.Div(
+                    id={"type": "filter-range-label", "name": f["name"]},
+                    style={"fontSize": "0.8rem", "marginTop": "0.25rem"},
+                ),
+            ],
+            style={"marginBottom": "1.5rem"},
+        )
+
+    # Fallback (you can add boolean, text, etc. later)
+    return html.Div(f"Unsupported filter type: {f['type']}")
+
+
+# -------------------------------------------------------------------
 
 
 def scan_files():
