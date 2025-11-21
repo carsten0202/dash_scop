@@ -3,11 +3,63 @@ from dash import dcc, html
 
 import settings
 
+# This is what, in your app, you'd derive from the Seurat metadata
+filter_schema = [
+    {
+        "name": "cell_type",
+        "label": "Cell type",
+        "type": "categorical",
+        "values": [],  # to be filled dynamically
+        #        "values": sorted(df["cell_type"].unique()),
+        "default": [],  # empty means "no filter"
+    },
+    {
+        "name": "batch",
+        "label": "Batch",
+        "type": "categorical",
+        "values": [],  # to be filled dynamically
+        #        "values": sorted(df["batch"].unique()),
+        "default": [],
+    },
+    {
+        "name": "sample_id",
+        "label": "Sample",
+        "type": "categorical",
+        "values": [],  # to be filled dynamically
+        #        "values": sorted(df["sample_id"].unique()),
+        "default": [],
+    },
+    {
+        "name": "n_genes",
+        "label": "Number of genes",
+        "type": "numeric_range",
+        #        "min": int(df["n_genes"].min()),
+        "min": 0,
+        #        "max": int(df["n_genes"].max()),
+        "max": 10000,
+        "step": 100,
+        #        "default": [int(df["n_genes"].min()), int(df["n_genes"].max())],
+    },
+    {
+        "name": "pct_mito",
+        "label": "Mito percent",
+        "type": "numeric_range",
+        #        "min": int(df["pct_mito"].min()),
+        "min": 0,
+        #        "max": int(df["pct_mito"].max()),
+        "max": 100,
+        "step": 1,
+        #        "default": [int(df["pct_mito"].min()), int(df["pct_mito"].max())],
+    },
+]
+# -------------------------------------------------------------------
+
 
 def get_layout(config_data):
     layout = dbc.Container(
         html.Div(
             [
+                dcc.Store(id="filter-schema-store", data=filter_schema),
                 html.H1("Single-Cell Transcriptomics Visualization"),
                 dbc.Row(
                     [
