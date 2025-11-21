@@ -16,8 +16,9 @@ from data_loader import load_seurat_rds
 # Load the Seurat data
 RDS_FILE = os.getenv("DASH_RDS_FILE", "testdata/seurat_obj_downsampled.rds")
 
-# Code to be deleted. No reason to preload a dataset if the user selects one
+# TODO: Code to be deleted. No reason to preload a dataset if the user selects one
 data_dfs = load_seurat_rds(RDS_FILE, "SCT", "data")
+metadata_df = data_dfs["metadata"]
 gene_matrix_df = data_dfs["gene_counts"]
 
 
@@ -31,7 +32,7 @@ def register_callbacks(app):
     cache.init_app(app.server)
 
     @cache.memoize()
-    def get_filtered_data(selected_genes, selected_cell_types):
+    def get_filtered_data(selected_genes, selected_cell_types, metadata_df):
         """Cache filtered expression data to avoid recomputation."""
         filtered_cells = metadata_df.index[metadata_df["seurat_clusters"].isin(selected_cell_types)]
         return gene_matrix_df.loc[selected_genes, filtered_cells]
@@ -76,6 +77,7 @@ def register_callbacks(app):
 
     @app.callback(
         Output("dataset-key", "data"),
+        Output("filter-schema-store", "data"),
         Output("selected-info", "children"),
         Input("file-dropdown", "value"),
         prevent_initial_call=True,
@@ -85,6 +87,7 @@ def register_callbacks(app):
             return no_update
         abs_p = safe_abs_path(rel_value)
         dataset_id = str(uuid.uuid4())  # generate a random ID for the dataset we're about to load
+        filter_schema = [] # Initialize the filtering schema to empty (no filters)
         # TODO: Would be nice to enable some kind of actual caching here, so that we do not re-load the data if the user re-selects a dataset...
         try:
             st = abs_p.stat()
@@ -95,11 +98,21 @@ def register_callbacks(app):
                 dataset_id, data_dfs, timeout=None
             )  # store it in the cache, timeout=None or 0 => use default (=> no expiry)
 
+            # TODO: Code to be deleted
             global metadata_df, gene_matrix_df
             gene_matrix_df = data_dfs["gene_counts"]
             metadata_df = data_dfs["metadata"]
 
-            return dataset_id, dbc.Alert(
+            filter_schema = [{
+                "name": "cell_type",
+                "label": "Cell type",
+                "type": "categorical",
+#                "values": [],  # to be filled dynamically
+                "values": sorted(metadata_df.columns),
+                "default": [],  # empty means "no filter"
+            }]
+
+            return dataset_id, filter_schema, dbc.Alert(
                 [
                     html.Strong("Loaded: "),
                     html.Code(str(abs_p)),
@@ -110,14 +123,18 @@ def register_callbacks(app):
                 dismissable=True,
             )
         except Exception as e:
-            return dataset_id, dbc.Alert(f"Failed to load: {e}", color="danger", dismissable=True)
+            return dataset_id, filter_schema, dbc.Alert(f"Failed to load: {e}", color="danger", dismissable=True)
 
+# TODO: This guy is getting old. Will need to delete when the drawer is operational.
     @app.callback(
         Output("gene-selector", "options"),
         Output("cell-type-filter", "options"),
         Input("plot-selector", "value"),
+        Input("dataset-key", "data"),
+        prevent_initial_call=True,
     )
-    def update_gene_and_celltype_options(plot_type):
+    def update_gene_and_celltype_options(plot_type, dataset_key):
+        gene_matrix_df = cache.get(dataset_key)["gene_counts"]  # Get gene count data from cache
         gene_options = [{"label": gene, "value": gene} for gene in gene_matrix_df.index]
         cell_type_options = [{"label": cell, "value": cell} for cell in metadata_df["seurat_clusters"].unique()]
         return gene_options, cell_type_options
@@ -165,13 +182,17 @@ def register_callbacks(app):
     def update_plots(plot_type, selected_genes, selected_cell_types, dataset_key):
         global last_figure  # Store last figure for export
 
+        seurat_data = cache.get(dataset_key)  # Get seurat data from cache
+        metadata_df = seurat_data["metadata"]  # Get metadata data from seurat
         if selected_genes is None or len(selected_genes) == 0:
             selected_genes = gene_matrix_df.index
         if selected_cell_types is None or len(selected_cell_types) == 0:
             selected_cell_types = metadata_df["seurat_clusters"].unique()
 
-        filtered_cells = metadata_df.index[metadata_df["seurat_clusters"].isin(selected_cell_types)]
-        filtered_expression = get_filtered_data(selected_genes, selected_cell_types)
+        filtered_cells = metadata_df
+        filtered_expression = get_filtered_data(selected_genes, selected_cell_types, metadata_df)
+#        filtered_cells = metadata_df.index[metadata_df["seurat_clusters"].isin(selected_cell_types)]
+#        filtered_expression = get_filtered_data(selected_genes, selected_cell_types, metadata_df)
 
         plot_figures = []
 
