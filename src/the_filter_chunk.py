@@ -1,10 +1,9 @@
 import dash
-from dash import Dash, html, dcc
-from dash.dependencies import Input, Output, State, ALL
 import dash_bootstrap_components as dbc
-
 import pandas as pd
 import plotly.express as px
+from dash import Dash, dcc, html
+from dash.dependencies import ALL, Input, Output, State
 
 # -------------------------------------------------------------------
 # Dummy data + filter schema (replace with your Seurat/R schema later)
