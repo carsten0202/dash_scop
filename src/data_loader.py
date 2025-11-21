@@ -34,6 +34,4 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
         umap_df = extracted[2]  # UMAP data as pandas DataFrame...
         umap_df.columns = umap_df.columns.str.upper()  # ...and set column names to uppercase
 
-        print(f"{metadata_df.columns}")
-
         return {"gene_counts": gene_matrix_df, "metadata": metadata_df, "umap": umap_df}
