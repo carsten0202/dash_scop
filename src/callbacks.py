@@ -13,15 +13,6 @@ from flask_caching import Cache
 import settings
 from data_loader import load_seurat_rds
 
-# Load the Seurat data
-RDS_FILE = os.getenv("DASH_RDS_FILE", "testdata/seurat_obj_downsampled.rds")
-
-# TODO: Code to be deleted. No reason to preload a dataset if the user selects one
-data_dfs = load_seurat_rds(RDS_FILE, "SCT", "data")
-metadata_df = data_dfs["metadata"]
-gene_matrix_df = data_dfs["gene_counts"]
-
-
 # Store the last generated figure
 last_figure = None
 
@@ -32,7 +23,7 @@ def register_callbacks(app):
     cache.init_app(app.server)
 
     @cache.memoize()
-    def get_filtered_data(selected_genes, selected_cell_types, metadata_df):
+    def get_filtered_data(selected_genes, selected_cell_types, metadata_df, gene_matrix_df):
         """Cache filtered expression data to avoid recomputation."""
         filtered_cells = metadata_df.index[metadata_df["seurat_clusters"].isin(selected_cell_types)]
         return gene_matrix_df.loc[selected_genes, filtered_cells]
@@ -87,23 +78,15 @@ def register_callbacks(app):
             return no_update
         abs_p = safe_abs_path(rel_value)
         dataset_id = str(uuid.uuid4())  # generate a random ID for the dataset we're about to load
-        filter_schema = []  # Initialize the filtering schema to empty (no filters)
+        #        filter_schema = []  # Initialize the filtering schema to empty (no filters)
         # TODO: Would be nice to enable some kind of actual caching here, so that we do not re-load the data if the user re-selects a dataset...
         try:
             st = abs_p.stat()
-            data_dfs = load_seurat_rds(
-                abs_p
-            )  # Don't send the object to the browser; just confirm and store downstream.
+            data_dfs = load_seurat_rds(abs_p)  # Don't send this object to the browser
             cache.set(
                 dataset_id, data_dfs, timeout=None
-            )  # store it in the cache, timeout=None or 0 => use default (=> no expiry)
-
-            # TODO: Code to be deleted
-            global metadata_df, gene_matrix_df
-            gene_matrix_df = data_dfs["gene_counts"]
-            metadata_df = data_dfs["metadata"]
-
-            filter_schema = filter_from_metadata(metadata_df)
+            )  # store big data_dfs in the cache, timeout=None or 0 => use default (=> no expiry)
+            filter_schema = filter_from_metadata(data_dfs["metadata"])
 
             return (
                 dataset_id,
@@ -122,7 +105,6 @@ def register_callbacks(app):
         except Exception as e:
             return dataset_id, filter_schema, dbc.Alert(f"Failed to load: {e}", color="danger", dismissable=True)
 
-    # TODO: This guy is getting old. Will need to delete or rewrite when the drawer is operational.
     @app.callback(
         Output("cell-index-key", "data"),
         Input({"type": "filter-control", "name": ALL}, "value"),
@@ -136,20 +118,18 @@ def register_callbacks(app):
         except TypeError:
             return no_update
 
-        print("\n")
+        selected_color = None  # Default coloring happens when color=None
         for f, id_ in zip(filters_cells, filters_ids):
             selected_indices = metadata_df.index[metadata_df[id_["name"]].isin(f)]
             if selected_indices.size:
                 selected_cells = selected_cells.intersection(selected_indices)
                 selected_color = id_["name"]  # FIX: Make a permanent solution for coloring plots
-        color_cells = metadata_df.loc[selected_cells, selected_color]
+        color_cells = metadata_df.loc[selected_cells, selected_color] if selected_color else None  # Series or None
 
         selection_id = str(uuid.uuid4())  # generate a random ID for the selection we're about to store
         cache.set(
-            selection_id, {"index": selected_cells, "color": color_cells, "shape": []}, timeout=None
+            selection_id, {"index": selected_cells, "color": color_cells, "shape": None}, timeout=None
         )  # store it in the cache, timeout=None or 0 => use default (=> no expiry)
-
-        print(selected_cells)
 
         return selection_id
 
@@ -159,7 +139,7 @@ def register_callbacks(app):
         Input("dataset-key", "data"),
         prevent_initial_call=True,
     )
-    def update_gene_and_celltype_options(filters_cells, filters_ids, dataset_key):
+    def update_gene_selection(dataset_key):
         gene_matrix_df = cache.get(dataset_key)["gene_counts"]  # Get gene count data from seurat data in cache
         gene_options = [{"label": gene, "value": gene} for gene in gene_matrix_df.index]
         return gene_options
@@ -200,28 +180,24 @@ def register_callbacks(app):
         Output("error-message", "children"),
         Input("plot-selector", "value"),
         Input("gene-selector", "value"),
-        Input({"type": "filter-control", "name": ALL}, "value"),
-        State({"type": "filter-control", "name": ALL}, "id"),
+        Input("cell-index-key", "data"),
         Input("dataset-key", "data"),
         prevent_initial_call=True,
     )
-    def update_plots(plot_type, selected_genes, filters_cell_type, filters_ids, dataset_key):
+    def update_plots(plot_type, selected_genes, cell_index_key, dataset_key):
         global last_figure  # Store last figure for export
 
+        # TODO: Phase out this code
         seurat_data = cache.get(dataset_key)  # Get seurat data from cache
         metadata_df = seurat_data["metadata"]  # Get metadata data from seurat
+        gene_matrix_df = seurat_data["gene_counts"]  # Get gene count data from seurat
         selected_cell_types = metadata_df.index  # Default to all cell types
-
-        for f, id_ in zip(filters_cell_type, filters_ids):
-            selected_indices = metadata_df.index[metadata_df[id_["name"]].isin(f)]
-            if selected_indices.size:
-                selected_cell_types = selected_cell_types.intersection(selected_indices)
-                selected_color_col = id_["name"]
-        filtered_cells = selected_cell_types
-
         if selected_genes is None or len(selected_genes) == 0:
             selected_genes = gene_matrix_df.index
-        filtered_expression = get_filtered_data(selected_genes, selected_cell_types, metadata_df)
+        filtered_expression = get_filtered_data(selected_genes, selected_cell_types, metadata_df, gene_matrix_df)
+
+        filtered_cells = cache.get(cell_index_key)["index"]  # Get filtered cell indices from cache
+        cells_color = cache.get(cell_index_key)["color"]  # Get color column from cache
 
         plot_figures = []
 
@@ -249,7 +225,7 @@ def register_callbacks(app):
                     umap_df.loc[filtered_cells],
                     x="UMAP_1",
                     y="UMAP_2",
-                    color=metadata_df.loc[filtered_cells, selected_color_col],
+                    color=cells_color,
                     title="UMAP Scatterplot",
                 )
                 plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
