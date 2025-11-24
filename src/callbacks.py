@@ -176,7 +176,7 @@ def register_callbacks(app):
         Input("dataset-key", "data"),
         prevent_initial_call=True,
     )
-    def update_plots(plot_type, selected_genes, selected_cell_types, selected_stuff, dataset_key):
+    def update_plots(plot_type, selected_genes, selected_cell_types, dataset_key):
         global last_figure  # Store last figure for export
 
         seurat_data = cache.get(dataset_key)  # Get seurat data from cache
@@ -185,6 +185,8 @@ def register_callbacks(app):
             selected_genes = gene_matrix_df.index
         if selected_cell_types is None or len(selected_cell_types) == 0:
             selected_cell_types = metadata_df["seurat_clusters"].unique()
+
+        print(selected_cell_types)
 
         filtered_cells = metadata_df.index[metadata_df["seurat_clusters"].isin(selected_cell_types)]
         filtered_expression = get_filtered_data(selected_genes, selected_cell_types, metadata_df)
