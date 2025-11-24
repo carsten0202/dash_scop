@@ -124,30 +124,45 @@ def register_callbacks(app):
 
     # TODO: This guy is getting old. Will need to delete or rewrite when the drawer is operational.
     @app.callback(
-        Output("gene-selector", "options"),
-        Output("cell-type-filter", "options"),
+        Output("cell-index-key", "data"),
         Input({"type": "filter-control", "name": ALL}, "value"),
         State({"type": "filter-control", "name": ALL}, "id"),
         Input("dataset-key", "data"),
-        prevent_initial_call=True,
     )
-    def update_gene_and_celltype_options(filters_cells, filters_ids, dataset_key):
-        seurat_data = cache.get(dataset_key)  # Get seurat data from cache
-        metadata_df = seurat_data["metadata"]  # Get metadata data from seurat
-        selected_cells = metadata_df.index  # Default to all cell types
+    def update_celltype_selection(filters_cells, filters_ids, dataset_key):
+        try:
+            metadata_df = cache.get(dataset_key)["metadata"]  # Get metadata data from seurat data in the cache.
+            selected_cells = metadata_df.index  # Default to all cell types
+        except TypeError:
+            return no_update
 
         print("\n")
         for f, id_ in zip(filters_cells, filters_ids):
             selected_indices = metadata_df.index[metadata_df[id_["name"]].isin(f)]
             if selected_indices.size:
                 selected_cells = selected_cells.intersection(selected_indices)
-                selected_color_col = id_["name"]
+                selected_color = id_["name"]  # FIX: Make a permanent solution for coloring plots
+        color_cells = metadata_df.loc[selected_cells, selected_color]
+
+        selection_id = str(uuid.uuid4())  # generate a random ID for the selection we're about to store
+        cache.set(
+            selection_id, {"index": selected_cells, "color": color_cells, "shape": []}, timeout=None
+        )  # store it in the cache, timeout=None or 0 => use default (=> no expiry)
+
         print(selected_cells)
 
-        gene_matrix_df = cache.get(dataset_key)["gene_counts"]  # Get gene count data from cache
+        return selection_id
+
+    # TODO: This guy is getting old. Will need to delete or rewrite when the drawer is operational.
+    @app.callback(
+        Output("gene-selector", "options"),
+        Input("dataset-key", "data"),
+        prevent_initial_call=True,
+    )
+    def update_gene_and_celltype_options(filters_cells, filters_ids, dataset_key):
+        gene_matrix_df = cache.get(dataset_key)["gene_counts"]  # Get gene count data from seurat data in cache
         gene_options = [{"label": gene, "value": gene} for gene in gene_matrix_df.index]
-        cell_type_options = [{"label": cell, "value": cell} for cell in metadata_df["seurat_clusters"].unique()]
-        return gene_options, cell_type_options
+        return gene_options
 
     @app.callback(
         Output("gene-selector-container", "style"),
