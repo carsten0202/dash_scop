@@ -43,9 +43,10 @@ def get_layout(config_data):
     layout = dbc.Container(
         html.Div(
             [
+                dcc.Store(id="cell-index-key"),  # holds just the key string for the current cell index selection
+                dcc.Store(id="dataset-key"),  # holds just the key string for the current dataset
                 dcc.Store(id="file-list"),  # holds list of files
                 dcc.Store(id="filter-schema-store", data=filter_schema),  # holds the filter schema
-                dcc.Store(id="dataset-key"),  # holds just the key string
                 html.H1("Single-Cell Transcriptomics Visualization"),
                 dbc.Row(
                     [
