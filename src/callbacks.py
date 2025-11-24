@@ -7,7 +7,7 @@ from pathlib import Path
 import dash_bootstrap_components as dbc
 import numpy as np
 import plotly.express as px
-from dash import Input, Output, State, dcc, html, no_update
+from dash import ALL, Input, Output, State, dcc, html, no_update
 from flask_caching import Cache
 
 import settings
@@ -87,7 +87,7 @@ def register_callbacks(app):
             return no_update
         abs_p = safe_abs_path(rel_value)
         dataset_id = str(uuid.uuid4())  # generate a random ID for the dataset we're about to load
-        filter_schema = [] # Initialize the filtering schema to empty (no filters)
+        filter_schema = []  # Initialize the filtering schema to empty (no filters)
         # TODO: Would be nice to enable some kind of actual caching here, so that we do not re-load the data if the user re-selects a dataset...
         try:
             st = abs_p.stat()
@@ -105,20 +105,24 @@ def register_callbacks(app):
 
             filter_schema = filter_from_metadata(metadata_df)
 
-            return dataset_id, filter_schema, dbc.Alert(
-                [
-                    html.Strong("Loaded: "),
-                    html.Code(str(abs_p)),
-                    html.Br(),
-                    f"Size: {st.st_size / 1_048_576:.2f} MB · Modified: {time.ctime(st.st_mtime)}",
-                ],
-                color="success",
-                dismissable=True,
+            return (
+                dataset_id,
+                filter_schema,
+                dbc.Alert(
+                    [
+                        html.Strong("Loaded: "),
+                        html.Code(str(abs_p)),
+                        html.Br(),
+                        f"Size: {st.st_size / 1_048_576:.2f} MB · Modified: {time.ctime(st.st_mtime)}",
+                    ],
+                    color="success",
+                    dismissable=True,
+                ),
             )
         except Exception as e:
             return dataset_id, filter_schema, dbc.Alert(f"Failed to load: {e}", color="danger", dismissable=True)
 
-# TODO: This guy is getting old. Will need to delete when the drawer is operational.
+    # TODO: This guy is getting old. Will need to delete or rewrite when the drawer is operational.
     @app.callback(
         Output("gene-selector", "options"),
         Output("cell-type-filter", "options"),
@@ -168,8 +172,7 @@ def register_callbacks(app):
         Output("error-message", "children"),
         Input("plot-selector", "value"),
         Input("gene-selector", "value"),
-        Input("cell-type-filter", "value"),
-        Input("filter-schema-store","data"),
+        Input({"type": "filter-control", "name": ALL}, "value"),
         Input("dataset-key", "data"),
         prevent_initial_call=True,
     )
@@ -208,6 +211,10 @@ def register_callbacks(app):
 
             elif plot_type == "umap":
                 umap_df = cache.get(dataset_key)["umap"]  # Get umap data from cache
+                print(selected_cell_types)
+                print(filtered_cells)
+                print(umap_df)
+
                 last_figure = px.scatter(
                     umap_df.loc[filtered_cells],
                     x="UMAP_1",
@@ -301,6 +308,8 @@ def filter_from_metadata(metadata_df):
             f = {}
         filter_schema.append(f)
     return filter_schema
+
+
 # -------------------------------------------------------------------
 
 
