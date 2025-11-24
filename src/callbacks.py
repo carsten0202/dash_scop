@@ -126,11 +126,24 @@ def register_callbacks(app):
     @app.callback(
         Output("gene-selector", "options"),
         Output("cell-type-filter", "options"),
-        Input("plot-selector", "value"),
+        Input({"type": "filter-control", "name": ALL}, "value"),
+        State({"type": "filter-control", "name": ALL}, "id"),
         Input("dataset-key", "data"),
         prevent_initial_call=True,
     )
-    def update_gene_and_celltype_options(plot_type, dataset_key):
+    def update_gene_and_celltype_options(filters_cells, filters_ids, dataset_key):
+        seurat_data = cache.get(dataset_key)  # Get seurat data from cache
+        metadata_df = seurat_data["metadata"]  # Get metadata data from seurat
+        selected_cells = metadata_df.index  # Default to all cell types
+
+        print("\n")
+        for f, id_ in zip(filters_cells, filters_ids):
+            selected_indices = metadata_df.index[metadata_df[id_["name"]].isin(f)]
+            if selected_indices.size:
+                selected_cells = selected_cells.intersection(selected_indices)
+                selected_color_col = id_["name"]
+        print(selected_cells)
+
         gene_matrix_df = cache.get(dataset_key)["gene_counts"]  # Get gene count data from cache
         gene_options = [{"label": gene, "value": gene} for gene in gene_matrix_df.index]
         cell_type_options = [{"label": cell, "value": cell} for cell in metadata_df["seurat_clusters"].unique()]
@@ -173,22 +186,26 @@ def register_callbacks(app):
         Input("plot-selector", "value"),
         Input("gene-selector", "value"),
         Input({"type": "filter-control", "name": ALL}, "value"),
+        State({"type": "filter-control", "name": ALL}, "id"),
         Input("dataset-key", "data"),
         prevent_initial_call=True,
     )
-    def update_plots(plot_type, selected_genes, selected_cell_types, dataset_key):
+    def update_plots(plot_type, selected_genes, filters_cell_type, filters_ids, dataset_key):
         global last_figure  # Store last figure for export
 
         seurat_data = cache.get(dataset_key)  # Get seurat data from cache
         metadata_df = seurat_data["metadata"]  # Get metadata data from seurat
+        selected_cell_types = metadata_df.index  # Default to all cell types
+
+        for f, id_ in zip(filters_cell_type, filters_ids):
+            selected_indices = metadata_df.index[metadata_df[id_["name"]].isin(f)]
+            if selected_indices.size:
+                selected_cell_types = selected_cell_types.intersection(selected_indices)
+                selected_color_col = id_["name"]
+        filtered_cells = selected_cell_types
+
         if selected_genes is None or len(selected_genes) == 0:
             selected_genes = gene_matrix_df.index
-        if selected_cell_types is None or len(selected_cell_types) == 0:
-            selected_cell_types = metadata_df["seurat_clusters"].unique()
-
-        print(selected_cell_types)
-
-        filtered_cells = metadata_df.index[metadata_df["seurat_clusters"].isin(selected_cell_types)]
         filtered_expression = get_filtered_data(selected_genes, selected_cell_types, metadata_df)
 
         plot_figures = []
@@ -213,15 +230,11 @@ def register_callbacks(app):
 
             elif plot_type == "umap":
                 umap_df = cache.get(dataset_key)["umap"]  # Get umap data from cache
-                print(selected_cell_types)
-                print(filtered_cells)
-                print(umap_df)
-
                 last_figure = px.scatter(
                     umap_df.loc[filtered_cells],
                     x="UMAP_1",
                     y="UMAP_2",
-                    color=metadata_df.loc[filtered_cells, "seurat_clusters"],
+                    color=metadata_df.loc[filtered_cells, selected_color_col],
                     title="UMAP Scatterplot",
                 )
                 plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
