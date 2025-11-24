@@ -14,22 +14,6 @@ filter_schema = [
         "default": [],  # empty means "no filter"
     },
     {
-        "name": "batch",
-        "label": "Batch",
-        "type": "categorical",
-        "values": [],  # to be filled dynamically
-        #        "values": sorted(df["batch"].unique()),
-        "default": [],
-    },
-    {
-        "name": "sample_id",
-        "label": "Sample",
-        "type": "categorical",
-        "values": [],  # to be filled dynamically
-        #        "values": sorted(df["sample_id"].unique()),
-        "default": [],
-    },
-    {
         "name": "n_genes",
         "label": "Number of genes",
         "type": "numeric_range",
