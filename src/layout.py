@@ -43,7 +43,9 @@ def get_layout(config_data):
     layout = dbc.Container(
         html.Div(
             [
-                dcc.Store(id="filter-schema-store", data=filter_schema),
+                dcc.Store(id="file-list"),  # holds list of files
+                dcc.Store(id="filter-schema-store", data=filter_schema),  # holds the filter schema
+                dcc.Store(id="dataset-key"),  # holds just the key string
                 html.H1("Single-Cell Transcriptomics Visualization"),
                 dbc.Row(
                     [
@@ -80,8 +82,6 @@ def get_layout(config_data):
                     justify="between",
                 ),
                 html.Div(id="selected-info", className="mt-3"),
-                dcc.Store(id="file-list"),  # holds list of files
-                dcc.Store(id="dataset-key"),  # holds just the key string
                 dcc.Interval(id="init", interval=50, n_intervals=0, max_intervals=1),  # populate once on load
                 # Dropdown for selecting the plot type
                 html.Label("Select a plot type:"),
@@ -110,23 +110,13 @@ def get_layout(config_data):
                         ),
                     ],
                 ),
-                # Checklist for cell type filtering
-                html.Label("Filter by cell type:"),
-                dcc.Checklist(
-                    id="cell-type-filter",
-                    options=[],  # Populated dynamically
-                    inline=True,
-                ),
                 html.Div(id="error-message", style={"color": "red"}),
                 # Graph container
                 html.Div(id="plot-container", style={"display": "flex", "flex-wrap": "wrap"}),
                 # Download button and component
                 html.Button("Download Plot as SVG", id="download-btn"),
                 dcc.Download(id="download-plot"),
-                # Store for the schema – in your app this could be populated by a callback
-                #        dcc.Store(id="filter-schema-store", data=filter_schema),
-                #        html.H2("Dynamic filters demo"),
-                # Top bar: button to open filters + active filter summary
+                # Button to open filters + active filter summary
                 dbc.Button("Filters", id="open-filter-offcanvas", n_clicks=0),
                 html.Div(
                     id="active-filters-text",
