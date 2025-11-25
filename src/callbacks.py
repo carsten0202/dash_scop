@@ -7,11 +7,12 @@ from pathlib import Path
 import dash_bootstrap_components as dbc
 import numpy as np
 import plotly.express as px
-from dash import ALL, Input, Output, State, dcc, html, no_update
+from dash import ALL, Input, Output, State, ctx, dcc, html, no_update
 from flask_caching import Cache
 
 import settings
 from data_loader import load_seurat_rds
+from layout import make_filter_component
 
 # Store the last generated figure
 last_figure = None
@@ -296,6 +297,26 @@ def register_callbacks(app):
         encoded_svg = svg_buffer.getvalue()
         return dcc.send_bytes(encoded_svg, filename="plot.svg")  # type: ignore
 
+    register_helper(app)
+
+
+def register_helper(app):
+    @app.callback(
+        Output({"type": "color-control", "name": ALL}, "value"),
+        Input({"type": "color-control", "name": ALL}, "value"),
+        #        Input({"type": "shape-control", "name": ALL}, "value"),
+        prevent_initial_call=True,
+    )
+    def exclusive_selection(color_button):
+        single_select = [None] * len(color_button)
+        try:
+            triggered = ctx.triggered_id.name  # which item triggered the callback
+            single_select[color_button.index(triggered)] = triggered
+        except (AttributeError, ValueError):
+            return no_update  # If nothing selected
+
+        return single_select
+
 
 # -------------------------------------------------------------------
 # Helper to build the filter schema from the metadata
@@ -314,53 +335,6 @@ def filter_from_metadata(metadata_df):
             f = {}
         filter_schema.append(f)
     return filter_schema
-
-
-# -------------------------------------------------------------------
-
-
-# -------------------------------------------------------------------
-# Helper to build a control for a single filter definition
-def make_filter_component(f):
-    filter_id = {"type": "filter-control", "name": f["name"]}
-
-    if f["type"] == "categorical":
-        return html.Div(
-            [
-                html.Label(f["label"]),
-                dcc.Dropdown(
-                    id=filter_id,
-                    options=[{"label": v, "value": v} for v in f["values"]],
-                    multi=True,
-                    value=f.get("default", []),
-                    placeholder=f"Select {f['label'].lower()}",
-                ),
-            ],
-            style={"marginBottom": "1rem"},
-        )
-
-    if f["type"] == "numeric_range":
-        return html.Div(
-            [
-                html.Label(f"{f['label']} range"),
-                dcc.RangeSlider(
-                    id=filter_id,
-                    min=f["min"],
-                    max=f["max"],
-                    step=f["step"],
-                    value=f.get("default", [f["min"], f["max"]]),
-                    tooltip={"always_visible": False, "placement": "bottom"},
-                ),
-                html.Div(
-                    id={"type": "filter-range-label", "name": f["name"]},
-                    style={"fontSize": "0.8rem", "marginTop": "0.25rem"},
-                ),
-            ],
-            style={"marginBottom": "1.5rem"},
-        )
-
-    # Fallback (you can add boolean, text, etc. later)
-    return html.Div(f"Unsupported filter type: {f['type']}")
 
 
 # -------------------------------------------------------------------
