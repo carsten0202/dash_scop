@@ -133,9 +133,96 @@ def get_layout(config_data):
                     scrollable=True,
                     backdrop=True,
                 ),
+                # Off-canvas drawer holding all filters
+                dbc.Offcanvas(
+                    id="filter-left-offcanvas",
+                    title="Filters Left",
+                    is_open=False,
+                    placement="start",
+                    children=html.Div([build_left()]),
+                    scrollable=True,
+                    backdrop=True,
+                ),
             ]
         ),
         fluid=True,
     )
 
     return layout
+
+
+# -------------------------------------------------------------------
+# Helper to build the left-side controls
+def build_left():
+    html_table_list = [
+        dcc.RadioItems(id="r1", options=[{"label": f"R1-{i}", "value": f"R1-{i}"} for i in range(1, 4)], value=None),
+        dcc.RadioItems(id="r2", options=[{"label": f"R2-{i}", "value": f"R2-{i}"} for i in range(1, 4)], value=None),
+        dcc.RadioItems(id="r3", options=[{"label": f"R3-{i}", "value": f"R3-{i}"} for i in range(1, 4)], value=None),
+    ]
+    return html.Table(html_table_list, className="table")
+
+
+# -------------------------------------------------------------------
+
+
+# -------------------------------------------------------------------
+# Helper to build a control for a single filter definition
+def make_filter_component(f):
+    filter_id = {"type": "filter-control", "name": f["name"]}
+    color_id = {"type": "color-control", "name": f["name"]}
+    shape_id = {"type": "shape-control", "name": f["name"]}
+
+    if f["type"] == "categorical":
+        return html.Div(
+            [
+                html.Label(f["label"]),
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            dcc.Dropdown(
+                                id=filter_id,
+                                options=[{"label": v, "value": v} for v in f["values"]],
+                                multi=True,
+                                value=f.get("default", []),
+                                placeholder=f"Select {f['label'].lower()}",
+                            ),
+                        ),
+                        dbc.Col(
+                            dcc.RadioItems(id=color_id, options=[{"label": "", "value": f["name"]}], value=None),
+                            xs=1,
+                        ),
+                        dbc.Col(
+                            dcc.RadioItems(id=shape_id, options=[{"label": "", "value": f["name"]}], value=None),
+                            xs=1,
+                        ),
+                    ]
+                ),
+            ],
+            style={"marginBottom": "1rem"},
+        )
+
+    if f["type"] == "numeric_range":
+        return html.Div(
+            [
+                html.Label(f"{f['label']} range"),
+                dcc.RangeSlider(
+                    id=filter_id,
+                    min=f["min"],
+                    max=f["max"],
+                    step=f["step"],
+                    value=f.get("default", [f["min"], f["max"]]),
+                    tooltip={"always_visible": False, "placement": "bottom"},
+                ),
+                html.Div(
+                    id={"type": "filter-range-label", "name": f["name"]},
+                    style={"fontSize": "0.8rem", "marginTop": "0.25rem"},
+                ),
+            ],
+            style={"marginBottom": "1.5rem"},
+        )
+
+    # Fallback (you can add boolean, text, etc. later)
+    return html.Div(f"Unsupported filter type: {f['type']}")
+
+
+# -------------------------------------------------------------------
