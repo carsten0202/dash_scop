@@ -195,15 +195,20 @@ def register_callbacks(app):
         selected_cell_types = metadata_df.index  # Default to all cell types
         if selected_genes is None or len(selected_genes) == 0:
             selected_genes = gene_matrix_df.index
-        filtered_expression = get_filtered_data(selected_genes, selected_cell_types, metadata_df, gene_matrix_df)
+        filtered_expression = gene_matrix_df.loc[selected_genes, selected_cell_types]
+        # get_filtered_data(selected_genes, selected_cell_types, metadata_df, gene_matrix_df)
 
         filtered_cells = cache.get(cell_index_key)["index"]  # Get filtered cell indices from cache
         cells_color = cache.get(cell_index_key)["color"]  # Get color column from cache
 
         plot_figures = []
 
+        # TODO: boxplots and violin plots are no longer working correctly
+        # TODO: And the heatmap doesn't work either...
+
         try:
             if plot_type == "boxplot" and len(selected_genes) <= settings.max_features:
+                """Generate boxplots for each selected gene. Either split by color filter, or all in one stack."""
                 df_melted = filtered_expression.melt(var_name="Cell", value_name="Expression")
                 df_melted["CellType"] = df_melted["Cell"].map(metadata_df["seurat_clusters"])
                 df_melted["Gene"] = np.tile(selected_genes, len(df_melted) // len(selected_genes))
