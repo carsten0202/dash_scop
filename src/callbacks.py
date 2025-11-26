@@ -104,7 +104,7 @@ def register_callbacks(app):
                 ),
             )
         except Exception as e:
-            return dataset_id, filter_schema, dbc.Alert(f"Failed to load: {e}", color="danger", dismissable=True)
+            return dataset_id, {}, dbc.Alert(f"Failed to load: {e}", color="danger", dismissable=True)
 
     @app.callback(
         Output("cell-index-key", "data"),
