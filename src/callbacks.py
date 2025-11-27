@@ -201,6 +201,9 @@ def register_callbacks(app):
         filtered_cells = cache.get(cell_index_key)["index"]  # Get filtered cell indices from cache
         cells_color = cache.get(cell_index_key)["color"]  # Get color column from cache
 
+        print("filtered_cells:", filtered_cells)
+        print("cells_color:", cells_color)
+
         plot_figures = []
 
         # TODO: boxplots and violin plots are no longer working correctly
@@ -209,21 +212,22 @@ def register_callbacks(app):
         try:
             if plot_type == "boxplot" and len(selected_genes) <= settings.max_features:
                 """Generate boxplots for each selected gene. Either split by color filter, or all in one stack."""
-                df_melted = filtered_expression.melt(var_name="Cell", value_name="Expression")
-                df_melted["CellType"] = df_melted["Cell"].map(metadata_df["seurat_clusters"])
-                df_melted["Gene"] = np.tile(selected_genes, len(df_melted) // len(selected_genes))
 
-                if len(selected_genes) <= settings.max_features:
-                    for gene in selected_genes:
-                        last_figure = px.box(
-                            df_melted[df_melted["Gene"] == gene],
-                            x="CellType",
-                            y="Expression",
-                            title=f"Boxplot for {gene}",
-                        )
-                        plot_figures.append(
-                            html.Div(dcc.Graph(figure=last_figure), style={"width": "48%", "display": "inline-block"})
-                        )
+                boxplot_df = seurat_data["boxplot"]
+                selected_barcodes = filtered_cells
+
+                for gene in selected_genes:
+                    df = boxplot_df.loc[selected_barcodes, [cells_color, gene]]
+
+                    last_figure = px.box(
+                        df,
+                        x="CellType",
+                        y="Expression",
+                        title=f"Boxplot for {gene}",
+                    )
+                    plot_figures.append(
+                        html.Div(dcc.Graph(figure=last_figure), style={"width": "48%", "display": "inline-block"})
+                    )
 
             elif plot_type == "umap":
                 umap_df = cache.get(dataset_key)["umap"]  # Get umap data from cache
