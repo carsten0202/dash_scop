@@ -42,8 +42,4 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
         print(boxplot_df)
         print(boxplot_df.dtypes)
 
-        # For the callback:
-        # Filter for rows where 'column_name' is 'value1' OR 'value2' OR 'value3'
-        # filtered_df = df.loc[df['column_name'].isin([value1, value2, value3])]
-
         return {"boxplot": boxplot_df, "gene_counts": gene_matrix_df, "metadata": metadata_df, "umap": umap_df}
