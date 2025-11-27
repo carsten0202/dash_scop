@@ -30,28 +30,20 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
         extracted = ro.r["extract_data"](seurat_obj, assay, layer)  # type: ignore
         metadata_df = extracted[0][
             [x for x in extracted[0].columns if extracted[0][x].dtype in ["object", "category"]]
-        ]  # Extract columns from metadata as pandas DataFrame that are of type 'object' or 'categorical'
+        ].astype(
+            "category"
+        )  # Extract columns from metadata as pandas DataFrame that are of type 'object' or 'category'
         gene_matrix_df = extracted[1]  # Gene expression matrix as pandas DataFrame
         umap_df = extracted[2]  # UMAP data as pandas DataFrame...
         umap_df.columns = umap_df.columns.str.upper()  # ...and set column names to uppercase
 
-        gene_matrix_melted = gene_matrix_df.melt(ignore_index=False)
+        # DataFrame suitable for boxplots
+        boxplot_df = pd.concat([metadata_df, gene_matrix_df.transpose()], axis=1)
+        print(boxplot_df)
+        print(boxplot_df.dtypes)
 
-        # Make barcodes categorical
-        gene_matrix_melted["variable"] = gene_matrix_melted["variable"].astype("category")
-        # Get the unique barcodes in the order pandas uses internally
-        barcodes = gene_matrix_melted["variable"].cat.categories
-        print("barcodes:", barcodes)
-        # Align metadata to those barcodes ONCE
-        cell_meta = metadata_df.reindex(barcodes)  # index: barcodes, length = n_cells
-        print(f"cell_meta: {cell_meta}")
+        # For the callback:
+        # Filter for rows where 'column_name' is 'value1' OR 'value2' OR 'value3'
+        # filtered_df = df.loc[df['column_name'].isin([value1, value2, value3])]
 
-        print(f"gene_matrix_melted: {gene_matrix_melted}")
-        print(f"metadata_df.cols: {metadata_df.columns}")
-
-        meta_aligned = metadata_df.reindex(gene_matrix_melted["variable"]).reset_index(drop=True)
-        print(f"meta_aligned: {meta_aligned}")
-        gene_matrix_df_new = pd.concat([gene_matrix_melted.reset_index(drop=True), meta_aligned], axis=1)
-        print(f"gene_matrix_new: {gene_matrix_df_new}")
-
-        return {"gene_counts": gene_matrix_df, "metadata": metadata_df, "umap": umap_df}
+        return {"boxplot": boxplot_df, "gene_counts": gene_matrix_df, "metadata": metadata_df, "umap": umap_df}
