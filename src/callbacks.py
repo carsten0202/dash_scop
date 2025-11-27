@@ -110,27 +110,30 @@ def register_callbacks(app):
         Output("cell-index-key", "data"),
         Input({"type": "filter-control", "name": ALL}, "value"),
         State({"type": "filter-control", "name": ALL}, "id"),
+        Input("color-column-name", "data"),
+        Input("shape-column-name", "data"),
         Input("dataset-key", "data"),
     )
-    def update_celltype_selection(filters_cells, filters_ids, dataset_key):
+    def update_barcode_selection(filters_cells, filters_ids, color_column, shape_column, dataset_key):
         try:
             metadata_df = cache.get(dataset_key)["metadata"]  # Get metadata data from seurat data in the cache.
             selected_cells = metadata_df.index  # Default to all cell types
         except TypeError:
             return no_update
 
-        selected_color = None  # Default coloring happens when color=None
         for f, id_ in zip(filters_cells, filters_ids):
             selected_indices = metadata_df.index[metadata_df[id_["name"]].isin(f)]
             if selected_indices.size:
                 selected_cells = selected_cells.intersection(selected_indices)
-                selected_color = id_["name"]  # FIX: Make a permanent solution for coloring plots
-        color_cells = metadata_df.loc[selected_cells, selected_color] if selected_color else None  # Series or None
+        color_barcodes = metadata_df.loc[selected_cells, color_column] if color_column else None  # Series or None
+        shape_barcodes = metadata_df.loc[selected_cells, shape_column] if color_column else None  # Series or None
 
         selection_id = str(uuid.uuid4())  # generate a random ID for the selection we're about to store
         cache.set(
-            selection_id, {"index": selected_cells, "color": color_cells, "shape": None}, timeout=None
+            selection_id, {"index": selected_cells, "color": color_barcodes, "shape": shape_barcodes}, timeout=None
         )  # store it in the cache, timeout=None or 0 => use default (=> no expiry)
+        # TODO: I'm guessing we may have a memory leak here if the user keeps changing selections a lot?
+        # Every time we create a new selection_id and store it in the cache, but never delete old ones.
 
         return selection_id
 
@@ -312,11 +315,11 @@ def register_callbacks(app):
 def register_helper(app):
     @app.callback(
         Output({"type": "color-control", "name": ALL}, "value"),
+        Output("color-column-name", "data"),
         Input({"type": "color-control", "name": ALL}, "value"),
-        #        Input({"type": "shape-control", "name": ALL}, "value"),
         prevent_initial_call=True,
     )
-    def exclusive_selection(color_button):
+    def exclusive_color_selection(color_button):
         single_select = [None] * len(color_button)
         try:
             triggered = ctx.triggered_id.name  # which item triggered the callback
@@ -324,7 +327,23 @@ def register_helper(app):
         except (AttributeError, ValueError):
             return no_update  # If nothing selected
 
-        return single_select
+        return single_select, triggered
+
+    @app.callback(
+        Output({"type": "shape-control", "name": ALL}, "value"),
+        Output("shape-column-name", "data"),
+        Input({"type": "shape-control", "name": ALL}, "value"),
+        prevent_initial_call=True,
+    )
+    def exclusive_shape_selection(shape_button):
+        single_select = [None] * len(shape_button)
+        try:
+            triggered = ctx.triggered_id.name  # which item triggered the callback
+            single_select[shape_button.index(triggered)] = triggered
+        except (AttributeError, ValueError):
+            return no_update  # If nothing selected
+
+        return single_select, triggered
 
 
 # -------------------------------------------------------------------
