@@ -38,7 +38,10 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
         umap_df.columns = umap_df.columns.str.upper()  # ...and set column names to uppercase
 
         # DataFrame suitable for boxplots
-        boxplot_df = pd.concat([metadata_df, gene_matrix_df.transpose()], axis=1)
+        combined_df = pd.DataFrame(
+            {"Combined": [1] * len(metadata_df.index)}, dtype="category", index=metadata_df.index
+        )
+        boxplot_df = pd.concat([metadata_df, combined_df, gene_matrix_df.transpose()], axis=1)
         print(boxplot_df)
         print(boxplot_df.dtypes)
 
