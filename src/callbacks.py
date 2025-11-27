@@ -126,7 +126,7 @@ def register_callbacks(app):
             if selected_indices.size:
                 selected_cells = selected_cells.intersection(selected_indices)
         color_barcodes = metadata_df.loc[selected_cells, color_column] if color_column else None  # Series or None
-        shape_barcodes = metadata_df.loc[selected_cells, shape_column] if color_column else None  # Series or None
+        shape_barcodes = metadata_df.loc[selected_cells, shape_column] if shape_column else None  # Series or None
 
         selection_id = str(uuid.uuid4())  # generate a random ID for the selection we're about to store
         cache.set(
@@ -185,10 +185,11 @@ def register_callbacks(app):
         Input("plot-selector", "value"),
         Input("gene-selector", "value"),
         Input("cell-index-key", "data"),
+        Input("color-column-name", "data"),
         Input("dataset-key", "data"),
         prevent_initial_call=True,
     )
-    def update_plots(plot_type, selected_genes, cell_index_key, dataset_key):
+    def update_plots(plot_type, selected_genes, cell_index_key, color_column, dataset_key):
         global last_figure  # Store last figure for export
 
         # TODO: Phase out this code
@@ -202,10 +203,11 @@ def register_callbacks(app):
         # get_filtered_data(selected_genes, selected_cell_types, metadata_df, gene_matrix_df)
 
         filtered_cells = cache.get(cell_index_key)["index"]  # Get filtered cell indices from cache
-        cells_color = cache.get(cell_index_key)["color"]  # Get color column from cache
+        barcodes_color = cache.get(cell_index_key)["color"]  # Get color column from cache
 
         print("filtered_cells:", filtered_cells)
-        print("cells_color:", cells_color)
+        print("cells_color:", barcodes_color)
+        selected_barcodes = filtered_cells
 
         plot_figures = []
 
@@ -215,17 +217,15 @@ def register_callbacks(app):
         try:
             if plot_type == "boxplot" and len(selected_genes) <= settings.max_features:
                 """Generate boxplots for each selected gene. Either split by color filter, or all in one stack."""
-
+                if not color_column:
+                    raise ValueError("Please select a shape... (Should we just show everything in one box?)")
                 boxplot_df = seurat_data["boxplot"]
-                selected_barcodes = filtered_cells
-
                 for gene in selected_genes:
-                    df = boxplot_df.loc[selected_barcodes, [cells_color, gene]]
-
                     last_figure = px.box(
-                        df,
-                        x="CellType",
-                        y="Expression",
+                        boxplot_df.loc[selected_barcodes, [color_column, gene]],
+                        x=color_column,
+                        y=gene,
+                        labels={color_column: color_column, gene: "Expression"},
                         title=f"Boxplot for {gene}",
                     )
                     plot_figures.append(
@@ -238,7 +238,7 @@ def register_callbacks(app):
                     umap_df.loc[filtered_cells],
                     x="UMAP_1",
                     y="UMAP_2",
-                    color=cells_color,
+                    color=barcodes_color,
                     title="UMAP Scatterplot",
                 )
                 plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
