@@ -28,21 +28,24 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
         """)
         seurat_obj = ro.r["LoadSeuratRds"](str(file_path))  # Load Seurat RDS file # type: ignore
         extracted = ro.r["extract_data"](seurat_obj, assay, layer)  # type: ignore
+
+        # Prepare metadata DataFrame
         metadata_df = extracted[0][
             [x for x in extracted[0].columns if extracted[0][x].dtype in ["object", "category"]]
         ].astype(
             "category"
         )  # Extract columns from metadata as pandas DataFrame that are of type 'object' or 'category'
-        gene_matrix_df = extracted[1]  # Gene expression matrix as pandas DataFrame
-        umap_df = extracted[2]  # UMAP data as pandas DataFrame...
-        umap_df.columns = umap_df.columns.str.upper()  # ...and set column names to uppercase
-
-        # DataFrame suitable for boxplots
         combined_df = pd.DataFrame(
             {"Combined": [1] * len(metadata_df.index)}, dtype="category", index=metadata_df.index
-        )
-        boxplot_df = pd.concat([metadata_df, combined_df, gene_matrix_df.transpose()], axis=1)
-        print(boxplot_df)
-        print(boxplot_df.dtypes)
+        )  # Create a 'Combined' column to show everything as one group
+        metadata_df = pd.concat([metadata_df, combined_df], axis=1)
+
+        # DataFrame suitable for boxplots, heatmap, etc.
+        gene_matrix_df = extracted[1]  # Gene expression matrix as pandas DataFrame
+        boxplot_df = pd.concat([metadata_df, gene_matrix_df.transpose()], axis=1)
+
+        # DataFrame for UMAP plotting
+        umap_df = extracted[2]  # UMAP data as pandas DataFrame...
+        umap_df.columns = umap_df.columns.str.upper()  # ...and set column names to uppercase
 
         return {"boxplot": boxplot_df, "gene_counts": gene_matrix_df, "metadata": metadata_df, "umap": umap_df}
