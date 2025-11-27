@@ -23,12 +23,6 @@ def register_callbacks(app):
     cache = Cache(config={"CACHE_TYPE": "simple"})
     cache.init_app(app.server)
 
-    @cache.memoize()
-    def get_filtered_data(selected_genes, selected_cell_types, metadata_df, gene_matrix_df):
-        """Cache filtered expression data to avoid recomputation."""
-        filtered_cells = metadata_df.index[metadata_df["seurat_clusters"].isin(selected_cell_types)]
-        return gene_matrix_df.loc[selected_genes, filtered_cells]
-
     @app.callback(
         Output("file-list", "data"),
         Input("rescan", "n_clicks"),
@@ -186,46 +180,36 @@ def register_callbacks(app):
         Input("gene-selector", "value"),
         Input("cell-index-key", "data"),
         Input("color-column-name", "data"),
+        Input("shape-column-name", "data"),
         Input("dataset-key", "data"),
         prevent_initial_call=True,
     )
-    def update_plots(plot_type, selected_genes, cell_index_key, color_column, dataset_key):
+    def update_plots(plot_type, selected_genes, cell_index_key, color_column, shape_column, dataset_key):
         global last_figure  # Store last figure for export
 
         # TODO: Phase out this code
         seurat_data = cache.get(dataset_key)  # Get seurat data from cache
-        metadata_df = seurat_data["metadata"]  # Get metadata data from seurat
         gene_matrix_df = seurat_data["gene_counts"]  # Get gene count data from seurat
-        selected_cell_types = metadata_df.index  # Default to all cell types
         if selected_genes is None or len(selected_genes) == 0:
             selected_genes = gene_matrix_df.index
-        filtered_expression = gene_matrix_df.loc[selected_genes, selected_cell_types]
-        # get_filtered_data(selected_genes, selected_cell_types, metadata_df, gene_matrix_df)
 
-        filtered_cells = cache.get(cell_index_key)["index"]  # Get filtered cell indices from cache
-        barcodes_color = cache.get(cell_index_key)["color"]  # Get color column from cache
-
-        print("filtered_cells:", filtered_cells)
-        print("cells_color:", barcodes_color)
-        selected_barcodes = filtered_cells
+        selected_barcodes = cache.get(cell_index_key)["index"]  # Get filtered cell/barcodes indices from cache
+        barcodes_color = cache.get(cell_index_key)["color"]  # Get colors matching index from cache
 
         plot_figures = []
 
-        # TODO: boxplots and violin plots are no longer working correctly
-        # TODO: And the heatmap doesn't work either...
+        # TODO: violin plots are not working correctly
 
         try:
             if plot_type == "boxplot" and len(selected_genes) <= settings.max_features:
                 """Generate boxplots for each selected gene. Either split by color filter, or all in one stack."""
-                if not color_column:
-                    raise ValueError("Please select a shape... (Should we just show everything in one box?)")
                 boxplot_df = seurat_data["boxplot"]
                 for gene in selected_genes:
                     last_figure = px.box(
-                        boxplot_df.loc[selected_barcodes, [color_column, gene]],
-                        x=color_column,
+                        boxplot_df.loc[selected_barcodes, [shape_column, gene]],
+                        x=shape_column,
                         y=gene,
-                        labels={color_column: color_column, gene: "Expression"},
+                        labels={shape_column: shape_column, gene: "Expression"},
                         title=f"Boxplot for {gene}",
                     )
                     plot_figures.append(
@@ -235,7 +219,7 @@ def register_callbacks(app):
             elif plot_type == "umap":
                 umap_df = cache.get(dataset_key)["umap"]  # Get umap data from cache
                 last_figure = px.scatter(
-                    umap_df.loc[filtered_cells],
+                    umap_df.loc[selected_barcodes],
                     x="UMAP_1",
                     y="UMAP_2",
                     color=barcodes_color,
@@ -244,22 +228,35 @@ def register_callbacks(app):
                 plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
             elif plot_type == "violin" and len(selected_genes) <= settings.max_features:
-                df_melted = filtered_expression.melt(var_name="Cell", value_name="Expression")
-                df_melted["CellType"] = df_melted["Cell"].map(metadata_df["seurat_clusters"])
-                df_melted["Gene"] = np.tile(selected_genes, len(df_melted) // len(selected_genes))
+                violin_df = (
+                    seurat_data["boxplot"]
+                    .loc[selected_barcodes, selected_genes]
+                    .melt(var_name="Gene", value_name="Expression")
+                )
+                #                df_melted = filtered_expression.melt(var_name="Cell", value_name="Expression")
+                #                df_melted["CellType"] = df_melted["Cell"].map(metadata_df["seurat_clusters"])
+                #                df_melted["Gene"] = np.tile(selected_genes, len(df_melted) // len(selected_genes))
+                print(violin_df)
                 last_figure = px.violin(
-                    df_melted, x="Gene", y="Expression", color="CellType", box=True, points="all", title="Violin Plot"
+                    violin_df,
+                    x="Gene",
+                    y="Expression",
+                    #                    color=barcodes_color,
+                    labels={shape_column: shape_column, "value": "Expression"},
+                    box=True,
+                    points="all",
+                    title="Violin Plot",
                 )
                 if len(selected_genes) <= 50:
                     plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
             elif plot_type == "heatmap":
-                heatmap_data = filtered_expression.to_numpy()
+                heatmap_df = seurat_data["gene_counts"].loc[selected_genes, selected_barcodes]  # Get gene count data
                 last_figure = px.imshow(
-                    heatmap_data,
+                    heatmap_df,
                     color_continuous_scale="Viridis",
                     title="Gene Expression Heatmap",
-                    x=filtered_expression.columns,  # columns
+                    x=heatmap_df.columns,  # columns
                     y=selected_genes,  # rows
                     aspect="auto",
                     # aspect="equal",
@@ -269,7 +266,7 @@ def register_callbacks(app):
                 # Don't show labels if there's too many
                 if len(selected_genes) > settings.max_features:
                     last_figure.update_yaxes(showticklabels=False)
-                if len(filtered_expression.columns) > 2 * settings.max_features:
+                if len(selected_barcodes) > 2 * settings.max_features:
                     last_figure.update_xaxes(showticklabels=False)
 
                 plot_figures.append(
@@ -278,9 +275,11 @@ def register_callbacks(app):
 
             else:
                 if len(selected_genes) == len(gene_matrix_df.index):
-                    raise ValueError("Please select one or more features.")
+                    raise ValueError("For Violin and Boxplots please select one or more features.")
                 elif len(selected_genes) > settings.max_features:
-                    raise ValueError(f"Please select no more than {settings.max_features} features.")
+                    raise ValueError(
+                        f"For Violin and Boxplots please select no more than {settings.max_features} features."
+                    )
                 else:
                     raise ValueError("Something went wrong?")
 
