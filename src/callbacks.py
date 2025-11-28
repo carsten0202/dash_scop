@@ -5,7 +5,6 @@ import uuid
 from pathlib import Path
 
 import dash_bootstrap_components as dbc
-import numpy as np
 import plotly.express as px
 from dash import ALL, Input, Output, State, ctx, dcc, html, no_update
 from flask_caching import Cache
@@ -114,13 +113,11 @@ def register_callbacks(app):
         except TypeError:
             return no_update
 
-        names = [s["name"] for s in schema]
-        print("schema.name:", names)
-        print("names found?:", color_column in names, shape_column in names)
-        if color_column not in names:
-            color_column = settings.combined_barcodes_colname
-        if shape_column not in names:
-            shape_column = settings.combined_barcodes_colname
+        schema_names = [s["name"] for s in schema]
+        if color_column not in schema_names:
+            color_column = None
+        if shape_column not in schema_names:
+            shape_column = None
 
         for f, id_ in zip(filters_cells, filters_ids):
             selected_indices = metadata_df.index[metadata_df[id_["name"]].isin(f)]
@@ -193,32 +190,25 @@ def register_callbacks(app):
     )
     def update_plots(plot_type, selected_genes, cell_index_key, color_column, shape_column, dataset_key):
         global last_figure  # Store last figure for export
-
-        # TODO: Phase out this code
-        seurat_data = cache.get(dataset_key)  # Get seurat data from cache
-        gene_matrix_df = seurat_data["gene_counts"]  # Get gene count data from seurat
-        if selected_genes is None or len(selected_genes) == 0:
-            selected_genes = gene_matrix_df.index
-
-        selected_barcodes = cache.get(cell_index_key)["index"]  # Get filtered cell/barcodes indices from cache
-        barcodes_color = cache.get(cell_index_key)["color"]  # Get colors matching index from cache
-
         plot_figures = []
 
-        # TODO: violin plots are not working correctly
+        seurat_data = cache.get(dataset_key)  # Get seurat data from cache
+        cell_index = cache.get(cell_index_key)  # Get cell index data from cache
+        if seurat_data is None or cell_index is None:
+            return no_update  # "Data not (yet?) loaded."
 
         try:
-            if plot_type == "boxplot" and len(selected_genes) <= settings.max_features:
-                """Generate boxplots for each selected gene. Either split by color filter, or all in one stack."""
-                boxplot_df = seurat_data["boxplot"]
+            selected_barcodes = cell_index["index"]  # Get filtered cell/barcodes indices from cache
+            barcodes_color = cell_index["color"]  # Get colors matching index from cache
+            if plot_type == "boxplot":
+                """Generate boxplots for each selected gene. Either split by shape filter, or all in one stack."""
+                if selected_genes is None:
+                    raise ValueError("For Boxplots please select one or more features.")
+                elif len(selected_genes) > settings.max_features:
+                    raise ValueError(f"For Boxplots please select no more than {settings.max_features} features.")
+                boxplot_df = seurat_data["boxplot"]  # Get boxplot data from seurat data in cache
                 for gene in selected_genes:
-                    last_figure = px.box(
-                        boxplot_df.loc[selected_barcodes, [shape_column, gene]],
-                        x=shape_column,
-                        y=gene,
-                        labels={shape_column: shape_column, gene: "Expression"},
-                        title=f"Boxplot for {gene}",
-                    )
+                    last_figure = generate_boxplot(boxplot_df, selected_barcodes, shape_column, gene, barcodes_color)
                     plot_figures.append(
                         html.Div(dcc.Graph(figure=last_figure), style={"width": "48%", "display": "inline-block"})
                     )
@@ -235,20 +225,22 @@ def register_callbacks(app):
                 plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
             elif plot_type == "violin" and len(selected_genes) <= settings.max_features:
+                """Generate violin plots for each selected gene. Either split by shape filter, or all in one stack."""
+                if selected_genes is None:
+                    raise ValueError("For Violin plots please select one or more features.")
+                elif len(selected_genes) > settings.max_features:
+                    raise ValueError(f"For Violin plots please select no more than {settings.max_features} features.")
+
                 violin_df = (
                     seurat_data["boxplot"]
                     .loc[selected_barcodes, selected_genes]
                     .melt(var_name="Gene", value_name="Expression")
                 )
-                #                df_melted = filtered_expression.melt(var_name="Cell", value_name="Expression")
-                #                df_melted["CellType"] = df_melted["Cell"].map(metadata_df["seurat_clusters"])
-                #                df_melted["Gene"] = np.tile(selected_genes, len(df_melted) // len(selected_genes))
-                print(violin_df)
                 last_figure = px.violin(
                     violin_df,
                     x="Gene",
                     y="Expression",
-                    #                    color=barcodes_color,
+                    color=barcodes_color[selected_barcodes] if barcodes_color is not None else None,
                     labels={shape_column: shape_column, "value": "Expression"},
                     box=True,
                     points="all",
@@ -258,6 +250,7 @@ def register_callbacks(app):
                     plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
             elif plot_type == "heatmap":
+                selected_genes = selected_genes or seurat_data["gene_counts"].index.tolist()  # Default to all genes
                 heatmap_df = seurat_data["gene_counts"].loc[selected_genes, selected_barcodes]  # Get gene count data
                 last_figure = px.imshow(
                     heatmap_df,
@@ -281,16 +274,11 @@ def register_callbacks(app):
                 )
 
             else:
-                if len(selected_genes) == len(gene_matrix_df.index):
-                    raise ValueError("For Violin and Boxplots please select one or more features.")
-                elif len(selected_genes) > settings.max_features:
-                    raise ValueError(
-                        f"For Violin and Boxplots please select no more than {settings.max_features} features."
-                    )
-                else:
-                    raise ValueError("Something went wrong?")
+                raise ValueError("Something went wrong?")
 
         except ValueError as e:
+            return plot_figures, f"Error: {str(e)}"
+        except TypeError as e:
             return plot_figures, f"Error: {str(e)}"
 
         return plot_figures, ""
@@ -350,6 +338,33 @@ def register_helper(app):
             return no_update  # If nothing selected
 
         return single_select, triggered
+
+
+# -------------------------------------------------------------------
+# Helper to generate a boxplot figure
+def generate_boxplot(boxplot_df, selected_barcodes, shape_column, gene, barcodes_color):
+    """Generate a boxplot figure."""
+    if shape_column and shape_column in boxplot_df.columns:  # If shape column is specified and exists
+        fig = px.box(
+            boxplot_df.loc[selected_barcodes, [shape_column, gene]],
+            x=shape_column,
+            y=gene,
+            color=barcodes_color[selected_barcodes] if barcodes_color is not None else None,
+            labels={shape_column: shape_column, gene: "Expression"},
+            title=f"Boxplot for {gene}",
+        )
+    else:
+        fig = px.box(  # If no shape column, plot all in one box
+            boxplot_df.loc[selected_barcodes, gene],
+            y=gene,
+            labels={gene: "Expression"},
+            color=barcodes_color[selected_barcodes] if barcodes_color is not None else None,
+            title=f"Boxplot for {gene}",
+        )
+    return fig
+
+
+# -------------------------------------------------------------------
 
 
 # -------------------------------------------------------------------
