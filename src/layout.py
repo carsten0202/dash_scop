@@ -6,14 +6,6 @@ import settings
 # This is what, in your app, you'd derive from the Seurat metadata
 filter_schema = [
     {
-        "name": "cell_type",
-        "label": "Cell type",
-        "type": "categorical",
-        "values": [],  # to be filled dynamically
-        #        "values": sorted(df["cell_type"].unique()),
-        "default": [],  # empty means "no filter"
-    },
-    {
         "name": "n_genes",
         "label": "Number of genes",
         "type": "numeric_range",
@@ -23,17 +15,6 @@ filter_schema = [
         "max": 10000,
         "step": 100,
         #        "default": [int(df["n_genes"].min()), int(df["n_genes"].max())],
-    },
-    {
-        "name": "pct_mito",
-        "label": "Mito percent",
-        "type": "numeric_range",
-        #        "min": int(df["pct_mito"].min()),
-        "min": 0,
-        #        "max": int(df["pct_mito"].max()),
-        "max": 100,
-        "step": 1,
-        #        "default": [int(df["pct_mito"].min()), int(df["pct_mito"].max())],
     },
 ]
 # -------------------------------------------------------------------
