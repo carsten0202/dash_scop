@@ -73,8 +73,7 @@ def register_callbacks(app):
             return no_update
         abs_p = safe_abs_path(rel_value)
         dataset_id = str(uuid.uuid4())  # generate a random ID for the dataset we're about to load
-        #        filter_schema = []  # Initialize the filtering schema to empty (no filters)
-        # TODO: Would be nice to enable some kind of actual caching here, so that we do not re-load the data if the user re-selects a dataset...
+        # TODO: Would be nice with actual caching here, so that we do not re-load if the user re-selects a dataset...
         try:
             st = abs_p.stat()
             data_dfs = load_seurat_rds(abs_p)  # Don't send this object to the browser
@@ -82,7 +81,6 @@ def register_callbacks(app):
                 dataset_id, data_dfs, timeout=None
             )  # store big data_dfs in the cache, timeout=None or 0 => use default (=> no expiry)
             filter_schema = filter_from_metadata(data_dfs["metadata"])
-
             return (
                 dataset_id,
                 filter_schema,
@@ -107,13 +105,22 @@ def register_callbacks(app):
         Input("color-column-name", "data"),
         Input("shape-column-name", "data"),
         Input("dataset-key", "data"),
+        Input("filter-schema-store", "data"),
     )
-    def update_barcode_selection(filters_cells, filters_ids, color_column, shape_column, dataset_key):
+    def update_barcode_selection(filters_cells, filters_ids, color_column, shape_column, dataset_key, schema):
         try:
             metadata_df = cache.get(dataset_key)["metadata"]  # Get metadata data from seurat data in the cache.
             selected_cells = metadata_df.index  # Default to all cell types
         except TypeError:
             return no_update
+
+        names = [s["name"] for s in schema]
+        print("schema.name:", names)
+        print("names found?:", color_column in names, shape_column in names)
+        if color_column not in names:
+            color_column = settings.combined_barcodes_colname
+        if shape_column not in names:
+            shape_column = settings.combined_barcodes_colname
 
         for f, id_ in zip(filters_cells, filters_ids):
             selected_indices = metadata_df.index[metadata_df[id_["name"]].isin(f)]
