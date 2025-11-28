@@ -12,3 +12,4 @@ BASE_DIR = Path(os.getenv("BASE_DIR", "testdata")).resolve(strict=False)  # Base
 RDS_ALLOWED_EXT = {".rds", ".rda", ".rdata"}  # Allowed file extensions
 
 max_features = 60  # Maximum number of features to plot at once
+combined_barcodes_colname = "Combined"  # Setting for combined feature column name
