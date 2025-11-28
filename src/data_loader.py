@@ -35,10 +35,6 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
         ].astype(
             "category"
         )  # Extract columns from metadata as pandas DataFrame that are of type 'object' or 'category'
-        combined_df = pd.DataFrame(
-            {"Combined": [1] * len(metadata_df.index)}, dtype="category", index=metadata_df.index
-        )  # Create a 'Combined' column to show everything as one group
-        metadata_df = pd.concat([metadata_df, combined_df], axis=1)
 
         # DataFrame suitable for boxplots, heatmap, etc.
         gene_matrix_df = extracted[1]  # Gene expression matrix as pandas DataFrame
