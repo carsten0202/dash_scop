@@ -25,11 +25,11 @@ def get_layout(config_data):
         html.Div(
             [
                 dcc.Store(id="cell-index-key"),  # holds just the key string for the current cell index selection
-                dcc.Store(id="color-column-name", data="Combined"),  # holds column name for the current color selection
+                dcc.Store(id="color-column-name"),  # holds column name for the current color selection
                 dcc.Store(id="dataset-key"),  # holds just the key string for the current dataset
                 dcc.Store(id="file-list"),  # holds list of files
                 dcc.Store(id="filter-schema-store", data=filter_schema),  # holds the filter schema
-                dcc.Store(id="shape-column-name", data="Combined"),  # holds column name for the current shape selection
+                dcc.Store(id="shape-column-name", data=None),  # holds column name for the current shape selection
                 html.H1("Single-Cell Transcriptomics Visualization"),
                 dbc.Row(
                     [
