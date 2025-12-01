@@ -3,146 +3,114 @@ from dash import dcc, html
 
 import settings
 
-# This is what, in your app, you'd derive from the Seurat metadata
-filter_schema = [
-    {
-        "name": "n_genes",
-        "label": "Number of genes",
-        "type": "numeric_range",
-        #        "min": int(df["n_genes"].min()),
-        "min": 0,
-        #        "max": int(df["n_genes"].max()),
-        "max": 10000,
-        "step": 100,
-        #        "default": [int(df["n_genes"].min()), int(df["n_genes"].max())],
-    },
-]
+
 # -------------------------------------------------------------------
-
-
+# Main layout function
 def get_layout(config_data):
-    layout = dbc.Container(
-        html.Div(
+    layout = [
+        dcc.Store(id="cell-index-key"),  # holds just the key string for the current cell index selection
+        dcc.Store(id="color-column-name"),  # holds column name for the current color selection
+        dcc.Store(id="dataset-key"),  # holds just the key string for the current dataset
+        dcc.Store(id="file-list"),  # holds list of files
+        dcc.Store(id="filter-schema-store", data=[]),  # holds the filter schema, [] for none
+        dcc.Store(id="shape-column-name", data=None),  # holds column name for the current shape selection
+        html.H1("DataSCOPe: Visualization of Data from Single-Cell Omics Projects"),
+        dbc.Col(
             [
-                dcc.Store(id="cell-index-key"),  # holds just the key string for the current cell index selection
-                dcc.Store(id="color-column-name"),  # holds column name for the current color selection
-                dcc.Store(id="dataset-key"),  # holds just the key string for the current dataset
-                dcc.Store(id="file-list"),  # holds list of files
-                dcc.Store(id="filter-schema-store", data=filter_schema),  # holds the filter schema
-                dcc.Store(id="shape-column-name", data=None),  # holds column name for the current shape selection
-                html.H1("Single-Cell Transcriptomics Visualization"),
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            dbc.Button("Rescan", id="rescan", n_clicks=0, color="secondary"),
-                            xs=2,
-                            lg=1,
-                        ),
-                        dbc.Col(
-                            dcc.Dropdown(
-                                id="file-dropdown",
-                                options=[],  # filled by callback
-                                placeholder=f"Browse {settings.BASE_DIR}…",
-                                searchable=True,
-                                clearable=False,
-                                style={"width": "100%"},
-                            ),
-                            xs=True,
-                        ),
-                        dbc.Col(
-                            dbc.Checklist(
-                                options=[{"label": "Show subfolders", "value": "sub"}],
-                                value=["sub"],
-                                id="show-subfolders",
-                                switch=True,
-                            ),
-                            xs=4,
-                            md=3,
-                            xl=2,
-                            align="center",
-                        ),
-                    ],
-                    className="gy-2",
-                    justify="between",
-                ),
-                html.Div(id="selected-info", className="mt-3"),
-                dcc.Interval(id="init", interval=50, n_intervals=0, max_intervals=1),  # populate once on load
-                # Dropdown for selecting the plot type
-                html.Label("Select a plot type:"),
+                dbc.Button("Rescan", id="rescan", n_clicks=0, color="secondary"),
                 dcc.Dropdown(
-                    id="plot-selector",
-                    options=[
-                        {"label": "Boxplot", "value": "boxplot"},
-                        {"label": "UMAP Scatterplot", "value": "umap"},
-                        {"label": "Violin Plot", "value": "violin"},
-                        {"label": "Heatmap", "value": "heatmap"},
-                    ],
-                    value="umap",  # Default selection
+                    id="file-dropdown",
+                    options=[],  # filled by callback
+                    placeholder=f"Browse {settings.BASE_DIR}…",
+                    searchable=True,
                     clearable=False,
+                    style={"flex": "1"},
                 ),
-                # Multi-dropdown for gene selection
-                html.Div(
-                    id="gene-selector-container",
-                    children=[
-                        html.Label("Select gene(s):", htmlFor="gene-selector"),
-                        dcc.Dropdown(
-                            id="gene-selector",
-                            options=[],  # Populated dynamically
-                            multi=True,
-                            placeholder="Select genes to display...",
-                            value=config_data.get("genes", []),
-                        ),
-                    ],
+                dbc.Checklist(
+                    options=[{"label": "Show subfolders", "value": "sub"}],
+                    value=["sub"],
+                    id="show-subfolders",
+                    switch=True,
                 ),
-                html.Div(id="error-message", style={"color": "red"}),
-                # Graph container
-                html.Div(id="plot-container", style={"display": "flex", "flex-wrap": "wrap"}),
-                # Download button and component
-                html.Button("Download Plot as SVG", id="download-btn"),
-                dcc.Download(id="download-plot"),
-                # Button to open filters + active filter summary
-                dbc.Button("Filters", id="open-filter-offcanvas", n_clicks=0),
-                html.Div(
-                    id="active-filters-text",
-                    style={"paddingTop": "0.5rem", "fontStyle": "italic"},
-                ),
-                # Off-canvas drawer holding all filters
-                dbc.Offcanvas(
-                    id="filter-offcanvas",
-                    title="Filters",
-                    is_open=False,
-                    placement="end",
-                    children=html.Div(id="all-filters"),
-                    scrollable=True,
-                    backdrop=True,
-                ),
-                # Off-canvas drawer holding all filters
-                dbc.Offcanvas(
-                    id="filter-left-offcanvas",
-                    title="Filters Left",
-                    is_open=False,
-                    placement="start",
-                    children=html.Div([build_left()]),
-                    scrollable=True,
-                    backdrop=True,
-                ),
-            ]
+            ],
+            style={
+                "display": "flex",
+                "flexDirection": "row",  # horizontal stacking
+                "alignItems": "center",  # vertical alignment
+                "gap": "0.5rem",  # spacing between elements
+            },
         ),
-        fluid=True,
-    )
+        html.Div(id="selected-info", className="mt-3"),
+        dcc.Interval(id="init", interval=50, n_intervals=0, max_intervals=1),  # populate once on load
+        # Dropdown for selecting the plot type
+        html.Label("Select a plot type:"),
+        dcc.Dropdown(
+            id="plot-selector",
+            options=[
+                {"label": "Boxplot", "value": "boxplot"},
+                {"label": "UMAP Scatterplot", "value": "umap"},
+                {"label": "Violin Plot", "value": "violin"},
+                {"label": "Heatmap", "value": "heatmap"},
+            ],
+            value="umap",  # Default selection
+            clearable=False,
+        ),
+        html.Div(id="error-message", style={"color": "red"}),
+        # Download button and component
+        dbc.Row(
+            [
+                dbc.Col(dbc.Button("Gene Filter Panel", id="open-left-offcanvas", n_clicks=0, disabled=True), width=2),
+                dbc.Col(dbc.Button("Download Plot as SVG", id="download-btn", n_clicks=0, disabled=True), width=2),
+                dbc.Col(dbc.Button("Barcode Filter Panel", id="open-right-offcanvas", n_clicks=0), width=2),
+            ],
+            justify="center",
+        ),
+        dcc.Download(id="download-plot"),
+        # Graph container
+        html.Div(id="plot-container", style={"display": "flex", "flex-wrap": "wrap"}),
+        # Off-canvas drawer holding cell/barcode filters
+        dbc.Offcanvas(
+            id="filter-right-offcanvas",
+            title="Filters",
+            is_open=False,
+            placement="end",
+            children=html.Div(id="barcode-filters"),
+            scrollable=True,
+            backdrop=True,
+        ),
+        # Off-canvas drawer holding gene filters
+        dbc.Offcanvas(
+            id="filter-left-offcanvas",
+            title="Filters Left",
+            is_open=False,
+            placement="start",
+            children=html.Div([build_left(config_data)]),
+            scrollable=True,
+            backdrop=True,
+        ),
+    ]
 
-    return layout
+    return dbc.Container(layout, fluid=True)
 
 
 # -------------------------------------------------------------------
-# Helper to build the left-side controls
-def build_left():
-    html_table_list = [
-        dcc.RadioItems(id="r1", options=[{"label": f"R1-{i}", "value": f"R1-{i}"} for i in range(1, 4)], value=None),
-        dcc.RadioItems(id="r2", options=[{"label": f"R2-{i}", "value": f"R2-{i}"} for i in range(1, 4)], value=None),
-        dcc.RadioItems(id="r3", options=[{"label": f"R3-{i}", "value": f"R3-{i}"} for i in range(1, 4)], value=None),
-    ]
-    return html.Table(html_table_list, className="table")
+# Helper to build the left-side controls (offcanvas)
+def build_left(config_data):
+    # Multi-dropdown for gene selection
+    html_div = html.Div(
+        id="gene-selector-container",
+        children=[
+            html.Label("Select gene(s):", htmlFor="gene-selector"),
+            dcc.Dropdown(
+                id="gene-selector",
+                options=[],  # Populated dynamically
+                multi=True,
+                placeholder="Select genes to display...",
+                value=config_data.get("genes", []),
+            ),
+        ],
+    )
+    return html_div
 
 
 # -------------------------------------------------------------------
@@ -171,7 +139,7 @@ def make_filter_component(f):
                             ),
                         ),
                         dbc.Col(
-                            dcc.RadioItems(id=color_id, options=[{"label": "", "value": f["name"]}], value=None),
+                            dcc.Checklist(id=color_id, options=[{"label": "", "value": f["name"]}], value=None),
                             xs=1,
                         ),
                         dbc.Col(
@@ -187,7 +155,7 @@ def make_filter_component(f):
     if f["type"] == "numeric_range":
         return html.Div(
             [
-                html.Label(f"{f['label']} range"),
+                html.Label(f["label"]),
                 dcc.RangeSlider(
                     id=filter_id,
                     min=f["min"],
@@ -196,11 +164,8 @@ def make_filter_component(f):
                     value=f.get("default", [f["min"], f["max"]]),
                     tooltip={"always_visible": False, "placement": "bottom"},
                 ),
-                html.Div(
-                    id={"type": "filter-range-label", "name": f["name"]},
-                    style={"fontSize": "0.8rem", "marginTop": "0.25rem"},
-                ),
             ],
+            className="d-none",  # FIX: Hide numeric filters for now, until supported
             style={"marginBottom": "1.5rem"},
         )
 
