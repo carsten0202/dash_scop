@@ -30,11 +30,19 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
         extracted = ro.r["extract_data"](seurat_obj, assay, layer)  # type: ignore
 
         # Prepare metadata DataFrame
-        metadata_df = extracted[0][
-            [x for x in extracted[0].columns if extracted[0][x].dtype in ["object", "category"]]
-        ].astype(
-            "category"
-        )  # Extract columns from metadata as pandas DataFrame that are of type 'object' or 'category'
+        metadata_df = pd.concat(
+            [
+                extracted[0][
+                    [x for x in extracted[0].columns if extracted[0][x].dtype in ["object", "category"]]
+                ].astype(
+                    "category"
+                ),  # Extract columns from metadata as pandas DataFrame that are of type 'object' or 'category'
+                extracted[0][
+                    [x for x in extracted[0].columns if extracted[0][x].dtype not in ["object", "category"]]
+                ],  # Extract non-categorical (probably numeric) columns from metadata
+            ],
+            axis=1,
+        )
 
         # DataFrame suitable for boxplots, heatmap, etc.
         gene_matrix_df = extracted[1]  # Gene expression matrix as pandas DataFrame
