@@ -113,6 +113,7 @@ def register_callbacks(app):
         except TypeError:
             return no_update
 
+        # Validate color/shape columns against schema (Schema may be changed if user re-loaded dataset)
         schema_names = [s["name"] for s in schema]
         if color_column not in schema_names:
             color_column = None
@@ -200,6 +201,7 @@ def register_callbacks(app):
         try:
             selected_barcodes = cell_index["index"]  # Get filtered cell/barcodes indices from cache
             barcodes_color = cell_index["color"]  # Get colors matching index from cache
+            barcodes_shape = cell_index["shape"]  # Get shapes matching index from cache
             if plot_type == "boxplot":
                 """Generate boxplots for each selected gene. Either split by shape filter, or all in one stack."""
                 if selected_genes is None:
@@ -220,6 +222,7 @@ def register_callbacks(app):
                     x="UMAP_1",
                     y="UMAP_2",
                     color=barcodes_color,
+                    symbol=barcodes_shape,
                     title="UMAP Scatterplot",
                 )
                 plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
