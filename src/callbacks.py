@@ -148,32 +148,42 @@ def register_callbacks(app):
         return gene_options
 
     @app.callback(
-        Output("gene-selector-container", "style"),
+        Output("open-left-offcanvas", "disabled"),
         Input("plot-selector", "value"),
     )
     def toggle_gene_selector(plot_type):
         # List of plots that should show the gene selector
         plots_showing_genes = ["boxplot", "violin", "heatmap"]  # Update as needed
         if plot_type in plots_showing_genes:
-            return {"display": "block"}  # Show
+            return False
         else:
-            return {"display": "none"}  # Hide
+            return True
 
     @app.callback(
-        Output("filter-offcanvas", "is_open"),
-        Input("open-filter-offcanvas", "n_clicks"),
-        State("filter-offcanvas", "is_open"),
+        Output("filter-left-offcanvas", "is_open"),
+        Input("open-left-offcanvas", "n_clicks"),
+        State("filter-left-offcanvas", "is_open"),
     )
-    def toggle_offcanvas(n_clicks, is_open):
+    def toggle_left_offcanvas(n_clicks, is_open):
         if n_clicks:
             return not is_open
         return is_open
 
     @app.callback(
-        Output("all-filters", "children"),
+        Output("filter-right-offcanvas", "is_open"),
+        Input("open-right-offcanvas", "n_clicks"),
+        State("filter-right-offcanvas", "is_open"),
+    )
+    def toggle_right_offcanvas(n_clicks, is_open):
+        if n_clicks:
+            return not is_open
+        return is_open
+
+    @app.callback(
+        Output("barcode-filters", "children"),
         Input("filter-schema-store", "data"),
     )
-    def build_filter_components(schema):
+    def build_barcode_filter_components(schema):
         if not schema:
             return html.Div("No filters defined.")
         return [make_filter_component(f) for f in schema]
@@ -184,12 +194,11 @@ def register_callbacks(app):
         Input("plot-selector", "value"),
         Input("gene-selector", "value"),
         Input("cell-index-key", "data"),
-        Input("color-column-name", "data"),
         Input("shape-column-name", "data"),
         Input("dataset-key", "data"),
         prevent_initial_call=True,
     )
-    def update_plots(plot_type, selected_genes, cell_index_key, color_column, shape_column, dataset_key):
+    def update_plots(plot_type, selected_genes, cell_index_key, shape_column, dataset_key):
         global last_figure  # Store last figure for export
         plot_figures = []
 
@@ -306,10 +315,10 @@ def register_callbacks(app):
         encoded_svg = svg_buffer.getvalue()
         return dcc.send_bytes(encoded_svg, filename="plot.svg")  # type: ignore
 
-    register_helper(app)
+    register_offcanvas_callbacks(app)
 
 
-def register_helper(app):
+def register_offcanvas_callbacks(app):
     @app.callback(
         Output({"type": "color-control", "name": ALL}, "value"),
         Output("color-column-name", "data"),
@@ -384,7 +393,15 @@ def filter_from_metadata(metadata_df):
                 "default": [],  # empty means "no filter selected"
             }
         else:
-            f = {}
+            f = {
+                "name": series.name,
+                "label": "Seurat@meta.data$" + series.name,
+                "type": "numeric_range",
+                "min": int(series.min()),
+                "max": int(series.max()),
+                "step": 100,
+                "default": [],
+            }
         filter_schema.append(f)
     return filter_schema
 
