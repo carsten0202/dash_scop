@@ -72,7 +72,10 @@ def get_layout(config_data):
         ),
         dcc.Download(id="download-plot"),
         # Graph container
-        html.Div(id="plot-container", style={"display": "flex", "flex": "1 1 auto", "minHeight": 0}),
+        html.Div(
+            id="plot-container",
+            style={"display": "flex", "flex": "1 1 auto", "minHeight": 0, "flexWrap": "wrap", "gap": "1rem"},
+        ),
         # Off-canvas drawer holding cell/barcode filters
         dbc.Offcanvas(
             id="filter-right-offcanvas",
