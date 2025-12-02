@@ -223,7 +223,7 @@ def register_callbacks(app):
                     plot_figures.append(
                         html.Div(
                             dcc.Graph(figure=last_figure),
-                            style={"width": "48%", "minHeight": "450px", "display": "inline-block"},
+                            style={"width": "49%", "height": "450px", "display": "inline-block"},
                         )
                     )
 
@@ -290,7 +290,7 @@ def register_callbacks(app):
                     last_figure.update_xaxes(showticklabels=False)
 
                 plot_figures.append(
-                    html.Div(dcc.Graph(figure=last_figure, style={"height": "70vh"}), style={"width": "100%"})
+                    html.Div(dcc.Graph(figure=last_figure), style={"flex": "1 1 auto", "minHeight": 0, "minWidth": 0})
                 )
 
             else:
