@@ -139,11 +139,11 @@ def make_filter_component(f):
                             ),
                         ),
                         dbc.Col(
-                            dcc.RadioItems(id=color_id, options=[{"label": "", "value": f["name"]}], value=None),
+                            dcc.Checklist(id=color_id, options=[{"label": "", "value": f["name"]}], value=[]),
                             xs=1,
                         ),
                         dbc.Col(
-                            dcc.RadioItems(id=shape_id, options=[{"label": "", "value": f["name"]}], value=None),
+                            dcc.Checklist(id=shape_id, options=[{"label": "", "value": f["name"]}], value=[]),
                             xs=1,
                         ),
                     ]
