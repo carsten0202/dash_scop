@@ -14,34 +14,39 @@ def get_layout(config_data):
         dcc.Store(id="file-list"),  # holds list of files
         dcc.Store(id="filter-schema-store", data=[]),  # holds the filter schema, [] for none
         dcc.Store(id="shape-column-name", data=None),  # holds column name for the current shape selection
-        html.H1("DataSCOPe: Visualization of Data from Single-Cell Omics Projects"),
-        dbc.Col(
-            [
-                dbc.Button("Rescan", id="rescan", n_clicks=0, color="secondary"),
-                dcc.Dropdown(
-                    id="file-dropdown",
-                    options=[],  # filled by callback
-                    placeholder=f"Browse {settings.BASE_DIR}…",
-                    searchable=True,
-                    clearable=False,
-                    style={"flex": "1"},
+        html.Div(
+            id="file-controls",
+            children=[
+                html.H1("DataSCOPe: Visualization of Data from Single-Cell Omics Projects"),
+                dbc.Col(
+                    [
+                        dbc.Button("Rescan", id="rescan", n_clicks=0, color="secondary"),
+                        dcc.Dropdown(
+                            id="file-dropdown",
+                            options=[],  # filled by callback
+                            placeholder=f"Browse {settings.BASE_DIR}…",
+                            searchable=True,
+                            clearable=False,
+                            style={"flex": "1"},
+                        ),
+                        dbc.Checklist(
+                            options=[{"label": "Show subfolders", "value": "sub"}],
+                            value=["sub"],
+                            id="show-subfolders",
+                            switch=True,
+                        ),
+                    ],
+                    style={
+                        "display": "flex",
+                        "flexDirection": "row",  # horizontal stacking
+                        "alignItems": "center",  # vertical alignment
+                        "gap": "0.5rem",  # spacing between elements
+                    },
                 ),
-                dbc.Checklist(
-                    options=[{"label": "Show subfolders", "value": "sub"}],
-                    value=["sub"],
-                    id="show-subfolders",
-                    switch=True,
-                ),
+                html.Div(id="selected-info", className="mt-3"),
+                dcc.Interval(id="init", interval=50, n_intervals=0, max_intervals=1),  # populate once on load
             ],
-            style={
-                "display": "flex",
-                "flexDirection": "row",  # horizontal stacking
-                "alignItems": "center",  # vertical alignment
-                "gap": "0.5rem",  # spacing between elements
-            },
         ),
-        html.Div(id="selected-info", className="mt-3"),
-        dcc.Interval(id="init", interval=50, n_intervals=0, max_intervals=1),  # populate once on load
         # Dropdown for selecting the plot type
         html.Label("Select a plot type:"),
         dcc.Dropdown(
@@ -67,7 +72,7 @@ def get_layout(config_data):
         ),
         dcc.Download(id="download-plot"),
         # Graph container
-        html.Div(id="plot-container", style={"display": "flex", "flex-wrap": "wrap"}),
+        html.Div(id="plot-container", style={"display": "flex", "flex": "1 1 auto", "minHeight": 0}),
         # Off-canvas drawer holding cell/barcode filters
         dbc.Offcanvas(
             id="filter-right-offcanvas",
@@ -90,7 +95,16 @@ def get_layout(config_data):
         ),
     ]
 
-    return dbc.Container(layout, fluid=True)
+    return html.Div(
+        layout,
+        style={
+            "height": "100vh",
+            "width": "100vw",
+            "padding": "1rem",
+            "display": "flex",
+            "flexDirection": "column",
+        },
+    )
 
 
 # -------------------------------------------------------------------
