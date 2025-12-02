@@ -221,7 +221,10 @@ def register_callbacks(app):
                 for gene in selected_genes:
                     last_figure = generate_boxplot(boxplot_df, selected_barcodes, shape_column, gene, barcodes_color)
                     plot_figures.append(
-                        html.Div(dcc.Graph(figure=last_figure), style={"width": "48%", "display": "inline-block"})
+                        html.Div(
+                            dcc.Graph(figure=last_figure),
+                            style={"width": "48%", "minHeight": "450px", "display": "inline-block"},
+                        )
                     )
 
             elif plot_type == "umap":
@@ -234,7 +237,12 @@ def register_callbacks(app):
                     symbol=barcodes_shape,
                     title="UMAP Scatterplot",
                 )
-                plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
+                plot_figures.append(
+                    html.Div(
+                        dcc.Graph(figure=last_figure, style={"height": "100%", "width": "100%"}),
+                        style={"flex": "1 1 auto", "minHeight": 0, "minWidth": 0},
+                    )
+                )
 
             elif plot_type == "violin" and len(selected_genes) <= settings.max_features:
                 """Generate violin plots for each selected gene. Either split by shape filter, or all in one stack."""
