@@ -326,13 +326,12 @@ def register_offcanvas_callbacks(app):
         prevent_initial_call=True,
     )
     def exclusive_color_selection(color_button):
-        single_select = [None] * len(color_button)
+        single_select = [[]] * len(color_button)
         try:
             triggered = ctx.triggered_id.name  # which item triggered the callback
-            single_select[color_button.index(triggered)] = triggered
+            single_select[color_button.index([triggered])] = [triggered]
         except (AttributeError, ValueError):
-            return no_update  # If nothing selected
-
+            return single_select, None  # If nothing selected
         return single_select, triggered
 
     @app.callback(
@@ -342,13 +341,12 @@ def register_offcanvas_callbacks(app):
         prevent_initial_call=True,
     )
     def exclusive_shape_selection(shape_button):
-        single_select = [None] * len(shape_button)
+        single_select = [[]] * len(shape_button)
         try:
             triggered = ctx.triggered_id.name  # which item triggered the callback
-            single_select[shape_button.index(triggered)] = triggered
+            single_select[shape_button.index([triggered])] = [triggered]
         except (AttributeError, ValueError):
-            return no_update  # If nothing selected
-
+            return single_select, None  # If nothing selected
         return single_select, triggered
 
 
