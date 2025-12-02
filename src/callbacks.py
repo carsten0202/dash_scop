@@ -213,7 +213,7 @@ def register_callbacks(app):
             barcodes_shape = cell_index["shape"]  # Get shapes matching index from cache
             if plot_type == "boxplot":
                 """Generate boxplots for each selected gene. Either split by shape filter, or all in one stack."""
-                if selected_genes is None:
+                if not selected_genes:
                     raise ValueError("For Boxplots please select one or more features.")
                 elif len(selected_genes) > settings.max_features:
                     raise ValueError(f"For Boxplots please select no more than {settings.max_features} features.")
@@ -246,7 +246,7 @@ def register_callbacks(app):
 
             elif plot_type == "violin" and len(selected_genes) <= settings.max_features:
                 """Generate violin plots for each selected gene. Either split by shape filter, or all in one stack."""
-                if selected_genes is None:
+                if not selected_genes:
                     raise ValueError("For Violin plots please select one or more features.")
                 elif len(selected_genes) > settings.max_features:
                     raise ValueError(f"For Violin plots please select no more than {settings.max_features} features.")
