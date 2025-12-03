@@ -13,7 +13,7 @@ def get_layout(config_data):
         dcc.Store(id="dataset-key"),  # holds just the key string for the current dataset
         dcc.Store(id="file-list"),  # holds list of files
         dcc.Store(id="filter-schema-store", data=[]),  # holds the filter schema, [] for none
-        dcc.Store(id="shape-column-name", data=None),  # holds column name for the current shape selection
+        dcc.Store(id="shape-column-name"),  # holds column name for the current shape selection
         html.Div(
             id="file-controls",
             children=[
@@ -58,7 +58,8 @@ def get_layout(config_data):
                 {"label": "Heatmap", "value": "heatmap"},
             ],
             value="umap",  # Default selection
-            clearable=False,
+            clearable=False,  # Should never be empty. You must select one, or let the default ride.
+            disabled=True,  # Enable after file load
         ),
         html.Div(id="error-message", style={"color": "red"}),
         # Download button and component
@@ -79,7 +80,7 @@ def get_layout(config_data):
         # Off-canvas drawer holding cell/barcode filters
         dbc.Offcanvas(
             id="filter-right-offcanvas",
-            title="Filters",
+            title="Barcode Filters",
             is_open=False,
             placement="end",
             children=html.Div(id="barcode-filters"),
@@ -89,7 +90,7 @@ def get_layout(config_data):
         # Off-canvas drawer holding gene filters
         dbc.Offcanvas(
             id="filter-left-offcanvas",
-            title="Filters Left",
+            title="Gene Filters",
             is_open=False,
             placement="start",
             children=html.Div([build_left(config_data)]),
@@ -154,6 +155,7 @@ def make_filter_component(f):
                                 value=f.get("default", []),
                                 placeholder=f"Select {f['label'].lower()}",
                             ),
+                            xs=9,
                         ),
                         dbc.Col(
                             dcc.Checklist(id=color_id, options=[{"label": "", "value": f["name"]}], value=[]),
@@ -163,10 +165,11 @@ def make_filter_component(f):
                             dcc.Checklist(id=shape_id, options=[{"label": "", "value": f["name"]}], value=[]),
                             xs=1,
                         ),
+                        dbc.Col([], xs=1),  # Empty cell for spacing
                     ]
                 ),
             ],
-            style={"marginBottom": "1rem"},
+            style={"marginBottom": "1rem", "alignItems": "right"},
         )
 
     if f["type"] == "numeric_range":
