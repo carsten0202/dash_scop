@@ -61,7 +61,6 @@ def get_layout(config_data):
             clearable=False,  # Should never be empty. You must select one, or let the default ride.
             disabled=True,  # Enable after file load
         ),
-        html.Div(id="error-message", style={"color": "red"}),
         # Download button and component
         dbc.Row(
             [
@@ -72,6 +71,7 @@ def get_layout(config_data):
             justify="center",
         ),
         dcc.Download(id="download-plot"),
+        html.Div(id="error-message", className="mt-3"),
         # Graph container
         html.Div(
             id="plot-container",
