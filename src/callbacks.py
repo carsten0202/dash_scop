@@ -313,7 +313,7 @@ def register_callbacks(app):
                 raise ValueError("Something went wrong?")
 
         except ValueError as e:
-            return plot_figures, f"Error: {str(e)}"
+            return plot_figures, dbc.Alert(f"Error: {e}", color="danger", dismissable=True)
         except TypeError as e:
             return plot_figures, f"Error: {str(e)}"
 
