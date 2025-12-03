@@ -63,16 +63,18 @@ def register_callbacks(app):
     @app.callback(
         Output("dataset-key", "data"),
         Output("filter-schema-store", "data"),
+        Output("plot-selector", "disabled"),
         Output("selected-info", "children"),
         Input("file-dropdown", "value"),
         prevent_initial_call=True,
     )
     def handle_file_selection(rel_value):
         if not rel_value:
-            return no_update
+            return no_update  # If no file selected, do nothing
         abs_p = safe_abs_path(rel_value)
         dataset_id = str(uuid.uuid4())  # generate a random ID for the dataset we're about to load
         # TODO: Would be nice with actual caching here, so that we do not re-load if the user re-selects a dataset...
+        # And/or clering the cache so we don't use too much memory over time.
         try:
             st = abs_p.stat()
             data_dfs = load_seurat_rds(abs_p)  # Don't send this object to the browser
@@ -81,8 +83,9 @@ def register_callbacks(app):
             )  # store big data_dfs in the cache, timeout=None or 0 => use default (=> no expiry)
             filter_schema = filter_from_metadata(data_dfs["metadata"])
             return (
-                dataset_id,
-                filter_schema,
+                dataset_id,  # dataset key
+                filter_schema,  # filter schema
+                False,  # Enable plot selector after file load
                 dbc.Alert(
                     [
                         html.Strong("Loaded: "),
@@ -95,7 +98,7 @@ def register_callbacks(app):
                 ),
             )
         except Exception as e:
-            return dataset_id, {}, dbc.Alert(f"Failed to load: {e}", color="danger", dismissable=True)
+            return dataset_id, {}, True, dbc.Alert(f"Failed to load: {e}", color="danger", dismissable=True)
 
     @app.callback(
         Output("cell-index-key", "data"),
@@ -104,7 +107,7 @@ def register_callbacks(app):
         Input("color-column-name", "data"),
         Input("shape-column-name", "data"),
         Input("dataset-key", "data"),
-        Input("filter-schema-store", "data"),
+        State("filter-schema-store", "data"),
     )
     def update_barcode_selection(filters_cells, filters_ids, color_column, shape_column, dataset_key, schema):
         try:
@@ -136,7 +139,6 @@ def register_callbacks(app):
 
         return selection_id
 
-    # TODO: This guy is getting old. Will need to delete or rewrite when the drawer is operational.
     @app.callback(
         Output("gene-selector", "options"),
         Input("dataset-key", "data"),
@@ -186,7 +188,21 @@ def register_callbacks(app):
     def build_barcode_filter_components(schema):
         if not schema:
             return html.Div("No filters defined.")
-        return [make_filter_component(f) for f in schema]
+        headline = dbc.Row(
+            [
+                dbc.Col([], xs=9),  # Empty cell for spacing
+                dbc.Col(
+                    html.Div("Color", style={"transform": "rotate(45deg)", "display": "inline-block"}),
+                    xs=1,
+                ),
+                dbc.Col(
+                    html.Div("Shape", style={"transform": "rotate(45deg)", "display": "inline-block"}),
+                    xs=1,
+                ),
+                dbc.Col([], xs=1),  # Empty cell for spacing
+            ]
+        )
+        return [headline] + [make_filter_component(f) for f in schema]
 
     @app.callback(
         Output("plot-container", "children"),
