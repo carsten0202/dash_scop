@@ -10,6 +10,7 @@ DEFAULT_RDS_FILE = "testdata/seurat_obj_downsampled.rds"
 # Other Settings
 BASE_DIR = Path(os.getenv("BASE_DIR", "testdata")).resolve(strict=False)  # Base directory for data files
 RDS_ALLOWED_EXT = {".rds", ".rda", ".rdata"}  # Allowed file extensions
+CACHE_DEFAULT_TIMEOUT = 300  # Cache timeout in seconds
 
 max_features = 60  # Maximum number of features to plot at once
 combined_barcodes_colname = "Combined"  # Setting for combined feature column name
