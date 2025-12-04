@@ -107,7 +107,7 @@ def register_callbacks(app):
         Input("color-column-name", "data"),
         Input("shape-column-name", "data"),
         Input("dataset-key", "data"),
-        State("filter-schema-store", "data"),
+        Input("filter-schema-store", "data"),
     )
     def update_barcode_selection(filters_cells, filters_ids, color_column, shape_column, dataset_key, schema):
         try:
@@ -218,10 +218,15 @@ def register_callbacks(app):
         global last_figure  # Store last figure for export
         plot_figures = []
 
+        # TODO: Something fishy is up with the color vector for violin, where it can be the wrong length?
+        # TODO: You clear the barcode selection when re-loading, but not the gene selection.
+        # TODO: The wrapping for plots is partially broken for vertical resizing of the window.
+
         seurat_data = cache.get(dataset_key)  # Get seurat data from cache
         cell_index = cache.get(cell_index_key)  # Get cell index data from cache
         if seurat_data is None or cell_index is None:
-            return no_update  # "Data not (yet?) loaded."
+            print("A cache was Null: ", settings.CACHE_DEFAULT_TIMEOUT, seurat_data, cell_index)
+            return no_update, "No data?"  # "Data not (yet?) loaded."
 
         try:
             selected_barcodes = cell_index["index"]  # Get filtered cell/barcodes indices from cache
