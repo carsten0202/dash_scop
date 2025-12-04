@@ -226,7 +226,7 @@ def register_callbacks(app):
         cell_index = cache.get(cell_index_key)  # Get cell index data from cache
         if seurat_data is None or cell_index is None:
             print("A cache was Null: ", settings.CACHE_DEFAULT_TIMEOUT, seurat_data, cell_index)
-            return no_update, "No data?"  # "Data not (yet?) loaded."
+            return [], "No data?"  # "Data not (yet?) loaded."
 
         try:
             selected_barcodes = cell_index["index"]  # Get filtered cell/barcodes indices from cache
