@@ -19,7 +19,7 @@ last_figure = None
 
 def register_callbacks(app):
     # Initialize Flask-Caching **after** app creation
-    cache = Cache(config={"CACHE_TYPE": "simple"})
+    cache = Cache(config={"CACHE_TYPE": "simple", "CACHE_DEFAULT_TIMEOUT": settings.CACHE_DEFAULT_TIMEOUT})
     cache.init_app(app.server)
 
     @app.callback(
@@ -225,8 +225,13 @@ def register_callbacks(app):
         seurat_data = cache.get(dataset_key)  # Get seurat data from cache
         cell_index = cache.get(cell_index_key)  # Get cell index data from cache
         if seurat_data is None or cell_index is None:
+            # Data not (yet?) loaded or cache expired
             print("A cache was Null: ", settings.CACHE_DEFAULT_TIMEOUT, seurat_data, cell_index)
-            return [], "No data?"  # "Data not (yet?) loaded."
+            return [], dbc.Alert(
+                f"No data loaded or timeout exceeded ({settings.CACHE_DEFAULT_TIMEOUT} Seconds)",
+                color="danger",
+                dismissable=True,
+            )
 
         try:
             selected_barcodes = cell_index["index"]  # Get filtered cell/barcodes indices from cache
