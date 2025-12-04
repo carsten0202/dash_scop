@@ -228,7 +228,8 @@ def register_callbacks(app):
             # Data not (yet?) loaded or cache expired
             print("A cache was Null: ", settings.CACHE_DEFAULT_TIMEOUT, seurat_data, cell_index)
             return [], dbc.Alert(
-                f"No data loaded or timeout exceeded ({settings.CACHE_DEFAULT_TIMEOUT} Seconds)",
+                f"No data loaded or timeout exceeded (timeout = {settings.CACHE_DEFAULT_TIMEOUT} Seconds). "
+                + "Please (re-)load the dataset.",
                 color="danger",
                 dismissable=True,
             )
