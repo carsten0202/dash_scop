@@ -72,19 +72,20 @@ def register_callbacks(app):
         if not rel_value:
             return no_update  # If no file selected, do nothing
         abs_p = safe_abs_path(rel_value)
-        dataset_id = str(uuid.uuid4())  # generate a random ID for the dataset we're about to load
+        dataset_key = str(uuid.uuid4())  # generate a random ID for the dataset we're about to load
         # TODO: Would be nice with actual caching here, so that we do not re-load if the user re-selects a dataset...
         # And/or clering the cache so we don't use too much memory over time.
         try:
             st = abs_p.stat()
             data_dfs = load_seurat_rds(abs_p)  # Don't send this object to the browser
+            cache.clear()  # Clear previous cache to save memory
             cache.set(
-                dataset_id, data_dfs, timeout=None
+                dataset_key, data_dfs, timeout=None
             )  # store big data_dfs in the cache, timeout=None or 0 => use default (=> no expiry)
             filter_schema = filter_from_metadata(data_dfs["metadata"])
             return (
-                dataset_id,  # dataset key
-                filter_schema,  # filter schema
+                dataset_key,
+                filter_schema,  # filter schema from metadata
                 False,  # Enable plot selector after file load
                 dbc.Alert(
                     [
@@ -98,7 +99,7 @@ def register_callbacks(app):
                 ),
             )
         except Exception as e:
-            return dataset_id, {}, True, dbc.Alert(f"Failed to load: {e}", color="danger", dismissable=True)
+            return dataset_key, {}, True, dbc.Alert(f"Failed to load: {e}", color="danger", dismissable=True)
 
     @app.callback(
         Output("cell-index-key", "data"),
@@ -218,9 +219,11 @@ def register_callbacks(app):
         global last_figure  # Store last figure for export
         plot_figures = []
 
-        # TODO: Something fishy is up with the color vector for violin, where it can be the wrong length?
-        # TODO: You clear the barcode selection when re-loading, but not the gene selection.
+        # TODO: You clear the barcode selection when re-loading, but not selected_genes.
+        # TODO:    You need to write something like update_barcode_selection for genes as well.
         # TODO: The wrapping for plots is partially broken for vertical resizing of the window.
+        # TODO: Heatmap brug Z-scores på gener
+        # TODO: Mulighed for at uploade gen-lister
 
         seurat_data = cache.get(dataset_key)  # Get seurat data from cache
         cell_index = cache.get(cell_index_key)  # Get cell index data from cache
