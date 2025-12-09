@@ -226,7 +226,6 @@ def register_callbacks(app):
         cell_index = cache.get(cell_index_key)  # Get cell index data from cache
         if seurat_data is None or cell_index is None:
             # Data not (yet?) loaded or cache expired
-            print("A cache was Null: ", settings.CACHE_DEFAULT_TIMEOUT, seurat_data, cell_index)
             return [], dbc.Alert(
                 f"No data loaded or timeout exceeded (timeout = {settings.CACHE_DEFAULT_TIMEOUT} Seconds). "
                 + "Please (re-)load the dataset.",
@@ -283,11 +282,16 @@ def register_callbacks(app):
                     .loc[selected_barcodes, selected_genes]
                     .melt(var_name="Gene", value_name="Expression")
                 )
+                if barcodes_color is not None:
+                    color_for_plot = barcodes_color[selected_barcodes].to_list() * len(selected_genes)
+                else:
+                    color_for_plot = None
+
                 last_figure = px.violin(
                     violin_df,
                     x="Gene",
                     y="Expression",
-                    color=barcodes_color[selected_barcodes] if barcodes_color is not None else None,
+                    color=color_for_plot,
                     labels={shape_column: shape_column, "value": "Expression"},
                     box=True,
                     points="all",
