@@ -1,35 +1,36 @@
 # syntax=docker/dockerfile:1
 
-ARG PYTHON_VERSION=3.13.1
-FROM debian:trixie-20250721-slim AS base
+# 1) Start from official Python slim image
+FROM python:3.12-slim-bookworm
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV GNUMAKEFLAGS=-j5
+# 2) Install tools needed for GPG + HTTPS + repos
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    dirmngr \
+    gnupg \
+    ca-certificates \
+    software-properties-common \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    python3 \
-    libcairo2-dev \
-    libcurl4-openssl-dev \
-    libfftw3-dev \
-    libfribidi-dev \
-    libharfbuzz-dev \
-    libjpeg-dev \
-    libpng-dev \
-    libssl-dev \
-    libtiff5-dev \
-    libxml2-dev \
-    python3-pip \
-    python3.13-venv \
-    r-base 
+# 3) Import the current CRAN Debian key and add the bookworm-cran40 repo
+#    Key fingerprint: 95C0 FA F3 8D B3 CC AD 0C 08 0A 7B DC 78 B2 DD EA BC 47 B7
+RUN set -eux; \
+    gpg --batch --keyserver hkp://keyserver.ubuntu.com:80 \
+    --recv-key '95C0FAF38DB3CCAD0C080A7BDC78B2DDEABC47B7'; \
+    gpg --armor --export '95C0FAF38DB3CCAD0C080A7BDC78B2DDEABC47B7' \
+    > /etc/apt/trusted.gpg.d/cran_debian_key.asc; \
+    echo 'deb http://cloud.r-project.org/bin/linux/debian bookworm-cran40/' \
+    > /etc/apt/sources.list.d/cran.list
 
-#  libudunits2-dev
+# 4) Install R (latest from CRAN backport for Debian bookworm)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    r-base \
+    r-base-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-
-# Install Seurat and dependencies
-RUN mkdir -p /usr/local/lib/R/site-library && chmod -R 777 /usr/local/lib/R/site-library
-RUN R --quiet -e 'if (!require("BiocManager", quietly = TRUE)) install.packages("BiocManager"); BiocManager::install("multtest")' && \
+# 5) Install Seurat and dependencies
+RUN mkdir -p /usr/local/lib/R/site-library && chmod -R 777 /usr/local/lib/R/site-library && \
+    R --quiet -e 'if (!require("BiocManager", quietly = TRUE)) install.packages("BiocManager"); BiocManager::install("multtest")' && \
     R --quiet -e "install.packages('Seurat', repos='https://cloud.r-project.org', quiet=TRUE)"
 
 
