@@ -136,19 +136,29 @@ def register_callbacks(app):
             selection_id, {"index": selected_cells, "color": color_barcodes, "shape": shape_barcodes}, timeout=None
         )  # store it in the cache, timeout=None or 0 => use default (=> no expiry)
         # TODO: I'm guessing we may have a memory leak here if the user keeps changing selections a lot?
-        # Every time we create a new selection_id and store it in the cache, but never delete old ones.
+        # Every time we create a new selection_id we store it in the cache, but never delete old ones.
+        # I'm currently wiping the cache every time the user loads a new dataset. That helps.
 
         return selection_id
 
     @app.callback(
         Output("gene-selector", "options"),
+        Output("gene-selector", "value"),
         Input("dataset-key", "data"),
-        prevent_initial_call=True,
+        State("gene-selector", "value"),
     )
-    def update_gene_selection(dataset_key):
-        gene_matrix_df = cache.get(dataset_key)["gene_counts"]  # Get gene count data from seurat data in cache
-        gene_options = [{"label": gene, "value": gene} for gene in gene_matrix_df.index]
-        return gene_options
+    def update_gene_selection(dataset_key, selected_genes):
+        try:
+            gene_matrix_df = cache.get(dataset_key)["gene_counts"]  # Get gene count data from seurat data in cache
+            gene_options = [{"label": gene, "value": gene} for gene in gene_matrix_df.index]
+        except TypeError:
+            return no_update, no_update
+
+        # Validate selected genes columns against gene_options (which may change if user re-loads dataset)
+        if selected_genes not in gene_options:
+            selected_genes = []
+
+        return gene_options, selected_genes
 
     @app.callback(
         Output("open-left-offcanvas", "disabled"),
@@ -219,11 +229,10 @@ def register_callbacks(app):
         global last_figure  # Store last figure for export
         plot_figures = []
 
-        # TODO: You clear the barcode selection when re-loading, but not selected_genes.
-        # TODO:    You need to write something like update_barcode_selection for genes as well.
         # TODO: The wrapping for plots is partially broken for vertical resizing of the window.
         # TODO: Heatmap brug Z-scores på gener
         # TODO: Mulighed for at uploade gen-lister
+        # TODO: Fix the download of plots (currently downloads last one, not all)
 
         seurat_data = cache.get(dataset_key)  # Get seurat data from cache
         cell_index = cache.get(cell_index_key)  # Get cell index data from cache
