@@ -60,6 +60,7 @@ def get_layout(config_data):
             value="umap",  # Default selection
             clearable=False,  # Should never be empty. You must select one, or let the default ride.
             disabled=True,  # Enable after file load
+            display=None,  # Show when you've fixed the download bug
         ),
         # Download button and component
         dbc.Row(
