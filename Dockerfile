@@ -56,14 +56,14 @@ COPY requirements.txt .
 
 
 # Install Python dependencies (including rpy2) into venv
-RUN python3 -m venv .venv
-RUN .venv/bin/python3 -m pip install --upgrade pip && \
+RUN python3 -m venv .venv && \
+    .venv/bin/python3 -m pip install --upgrade pip && \
     .venv/bin/python3 -m pip install -r requirements.txt
 
-COPY testdata/seurat_obj_downsampled.rds data/data.rds
+# COPY testdata/seurat_obj_downsampled.rds data/data.rds
 COPY src .
 
 # Expose and run
 EXPOSE 8050
-CMD ["/app/.venv/bin/python3", "/app/cli.py", "--ip", "0.0.0.0", "--port", "8050", "--rds", "/app/data/data.rds"]
+CMD ["/app/.venv/bin/python3", "/app/cli.py", "--ip", "0.0.0.0", "--port", "8050"]
 
