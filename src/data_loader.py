@@ -5,6 +5,7 @@ import rpy2.robjects as ro
 from rpy2.robjects import pandas2ri
 from rpy2.robjects.conversion import localconverter
 from rpy2.robjects.packages import importr
+from scipy.stats import zscore
 
 # Load R packages
 base = importr("base")
@@ -44,12 +45,15 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
             axis=1,
         )
 
-        # DataFrame suitable for boxplots, heatmap, etc.
+        # DataFrame suitable for boxplots & violon plots
         gene_matrix_df = extracted[1]  # Gene expression matrix as pandas DataFrame
         boxplot_df = pd.concat([metadata_df, gene_matrix_df.transpose()], axis=1)
+
+        # DataFrame for Heatmaps
+        heatmap_df = gene_matrix_df.apply(zscore, axis=1, result_type="broadcast")
 
         # DataFrame for UMAP plotting
         umap_df = extracted[2]  # UMAP data as pandas DataFrame...
         umap_df.columns = umap_df.columns.str.upper()  # ...and set column names to uppercase
 
-        return {"boxplot": boxplot_df, "gene_counts": gene_matrix_df, "metadata": metadata_df, "umap": umap_df}
+        return {"boxplot": boxplot_df, "gene_counts": gene_matrix_df, "heatmap": heatmap_df, "metadata": metadata_df, "umap": umap_df}
