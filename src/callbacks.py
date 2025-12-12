@@ -313,8 +313,8 @@ def register_callbacks(app):
                     plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
             elif plot_type == "heatmap":
-                selected_genes = selected_genes or seurat_data["gene_counts"].index.tolist()  # Default to all genes
-                heatmap_df = seurat_data["gene_counts"].loc[selected_genes, selected_barcodes]  # Get gene count data
+                selected_genes = selected_genes or seurat_data["heatmap"].index.tolist()  # Default to all genes
+                heatmap_df = seurat_data["heatmap"].loc[selected_genes, selected_barcodes]  # Get gene count data
                 last_figure = px.imshow(
                     heatmap_df,
                     color_continuous_scale="Viridis",
