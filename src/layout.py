@@ -60,13 +60,12 @@ def get_layout(config_data):
             value="umap",  # Default selection
             clearable=False,  # Should never be empty. You must select one, or let the default ride.
             disabled=True,  # Enable after file load
-            display=None,  # Show when you've fixed the download bug
         ),
         # Download button and component
         dbc.Row(
             [
                 dbc.Col(dbc.Button("Gene Filter Panel", id="open-left-offcanvas", n_clicks=0, disabled=True), width=2),
-                dbc.Col(dbc.Button("Download Plot as SVG", id="download-btn", n_clicks=0, disabled=True), width=2),
+                dbc.Col(dbc.Button("Download Plot as SVG", id="download-btn", n_clicks=0, disabled=True, style={"display": "none"}), width=2),
                 dbc.Col(dbc.Button("Barcode Filter Panel", id="open-right-offcanvas", n_clicks=0), width=2),
             ],
             justify="center",
