@@ -21,8 +21,8 @@ def main():
     parser = argparse.ArgumentParser(description="Launch Singularity container with auto-selected port and data file.")
     parser.add_argument("--data", help="Path to the .rds data file")
     parser.add_argument("--container", default="datascope_latest.sif", help="Singularity container file")
-    parser.add_argument("--port-start", type=int, default=25000, help="Port search start")
-    parser.add_argument("--port-end", type=int, default=26000, help="Port search end")
+    parser.add_argument("--port-start", type=int, default=49152, help="Port search start")
+    parser.add_argument("--port-end", type=int, default=65535, help="Port search end")
 
     args = parser.parse_args()
 
