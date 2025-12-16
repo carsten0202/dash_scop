@@ -26,12 +26,26 @@ RUN set -eux; \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     r-base \
     r-base-dev \
+    libcurl4-openssl-dev \
+    libxml2-dev \
+    libssl-dev \
+    libfontconfig1-dev \
+    libharfbuzz-dev \
+    libfribidi-dev \
+    libfreetype6-dev \
+    libpng-dev \
+    libtiff5-dev \
+    libjpeg-dev \
+    libbz2-dev \
+    liblzma-dev \
+    zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # 5) Install Seurat and dependencies
 RUN mkdir -p /usr/local/lib/R/site-library && chmod -R 777 /usr/local/lib/R/site-library && \
     R --quiet -e 'if (!require("BiocManager", quietly = TRUE)) install.packages("BiocManager"); BiocManager::install("multtest")' && \
-    R --quiet -e "install.packages('Seurat', repos='https://cloud.r-project.org', quiet=TRUE)"
+    R -e "install.packages('Seurat', repos='https://cloud.r-project.org')" && \
+    R -e "library(Seurat); print('Seurat installed successfully')"
 
 
 # Ensure R can find Seurat at runtime
@@ -58,7 +72,8 @@ COPY requirements.txt .
 # Install Python dependencies (including rpy2) into venv
 RUN python3 -m venv .venv && \
     .venv/bin/python3 -m pip install --upgrade pip && \
-    .venv/bin/python3 -m pip install -r requirements.txt
+    .venv/bin/python3 -m pip install -r requirements.txt && \
+    .venv/bin/python3 -c "import rpy2.robjects as ro; from rpy2.robjects.packages import importr; seurat = importr('Seurat'); print('rpy2 Seurat import successful')"
 
 # COPY testdata/seurat_obj_downsampled.rds data/data.rds
 COPY src .
