@@ -18,7 +18,7 @@ def find_free_port(start=8000, end=9000):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Launch Singularity container with auto-selected port and data file.")
+    parser = argparse.ArgumentParser(description="Launch DataSCOPE container with auto-selected port and data file.")
     parser.add_argument("--data", default=os.getcwd(), help="Path to directory with .rds data files")
     parser.add_argument("--container", default="datascope_latest.sif", help="Singularity container file")
     parser.add_argument("--port-start", type=int, default=49152, help="Port search start")
@@ -39,7 +39,7 @@ def main():
     ip = "0.0.0.0"
     cli_script = "/app/cli.py"
     python_exec = "/app/.venv/bin/python3"
-    container_data_path = "/app/data/data.rds"
+    container_data_path = "/app/data/"
 
     # Build the singularity exec command
     cmd = [
