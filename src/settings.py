@@ -8,7 +8,7 @@ DEFAULT_DEBUG = os.getenv("DASH_DEBUG", "True") == "True"
 DEFAULT_RDS_FILE = "testdata/seurat_obj_downsampled.rds"
 
 # Other Settings
-BASE_DIR = Path(os.getenv("BASE_DIR", "testdata")).resolve(strict=False)  # Base directory for data files
+BASE_DIR = Path(os.getenv("BASE_DIR", "")).resolve(strict=False)  # Base directory for data files
 RDS_ALLOWED_EXT = {".rds", ".rda", ".rdata"}  # Allowed file extensions
 CACHE_DEFAULT_TIMEOUT = 12 * 60 * 60  # Cache timeout in seconds
 
