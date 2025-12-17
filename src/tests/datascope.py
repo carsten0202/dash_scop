@@ -19,7 +19,7 @@ def find_free_port(start=8000, end=9000):
 
 def main():
     parser = argparse.ArgumentParser(description="Launch Singularity container with auto-selected port and data file.")
-    parser.add_argument("--data", help="Path to the .rds data file")
+    parser.add_argument("--data", default=os.getcwd(), help="Path to directory with .rds data files")
     parser.add_argument("--container", default="datascope_latest.sif", help="Singularity container file")
     parser.add_argument("--port-start", type=int, default=49152, help="Port search start")
     parser.add_argument("--port-end", type=int, default=65535, help="Port search end")
