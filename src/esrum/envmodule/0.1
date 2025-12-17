@@ -1,6 +1,6 @@
 #%Module1.0######################################################################
 #
-# DataSCOPE
+# DataSCOPe
 #
 # Author:       Carsten Friis Rundsten
 # Date:         18/12/2024
@@ -18,10 +18,7 @@ proc ModulesHelp { } {
 }
 
 proc ModulesDisplay { } {
-   puts stderr "\nSNPtool is a collection of commonly used tools for manipulating various SNP and/or INDEL based formats."
-   puts stderr "\tsnptool      - The core tool from where all functions are available."
-   puts stderr "\tSNPextractor - Direct access to the 'snptool extract' command for extracting snps from vcf files."
-   puts stderr "\tvcf2genoinfo - Converts VCF file into the Geno & Info files of 'classical' SNPextractor."
+   puts stderr "\nDataSCOPe is a tool for Visualization of Data from Single Cell Omics Projects."
 }
 
 
@@ -35,7 +32,7 @@ conflict "${name}"
 prereq "apptainer"
 prereq "python"
 
-module-whatis "${name} ${version} - SNPtool is a collection of commonly used tools for manipulating various SNP and/or INDEL based formats."
+module-whatis "${name} ${version} - Visualization of Data from Single Cell Omics Projects."
 
 
 #
@@ -46,13 +43,10 @@ set basedir "/projects/cbmr_shared/apps/modules/software/${name}/${version}"
 # Add bin to PATH
 prepend-path PATH "${basedir}/bin"
 
-# Add python lib to PYTHONPATH
-prepend-path PYTHONPATH "${basedir}/"
+# Add python lib to PYTHONPATH (Currently not needed as all packages for wrapper script are core)
+# prepend-path PYTHONPATH "${basedir}/"
 
-# Set environment variables
+# Set environment variables (not sure I have any?)
 if { ![info exists ::env(SNPTOOL_DATABASE_PATH)] } {
     setenv SNPTOOL_DATABASE_PATH "/projects/cbmr_shared/data/common_resources/${name}"
-}
-if { ![info exists ::env(SNPTOOL_DBSNP_BUILD)] } {
-    setenv SNPTOOL_DBSNP_BUILD "b156"
 }
