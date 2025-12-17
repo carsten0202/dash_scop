@@ -30,7 +30,7 @@ def register_callbacks(app):
     )
     def refresh_file_list(_clicks, _init):
         files = scan_files()
-        # include simple metadata (mtime, size) if you like
+        # maybe include simple metadata (mtime, size)?
         enriched = []
         for rel in files:
             p = (settings.BASE_DIR / rel).resolve()
@@ -379,7 +379,7 @@ def register_offcanvas_callbacks(app):
     def exclusive_color_selection(color_button):
         single_select = [[]] * len(color_button)
         try:
-            triggered = ctx.triggered_id.name  # which item triggered the callback
+            triggered = ctx.triggered_id.name  # type: ignore # which item triggered the callback
             single_select[color_button.index([triggered])] = [triggered]
         except (AttributeError, ValueError):
             return single_select, None  # If nothing selected
@@ -394,7 +394,7 @@ def register_offcanvas_callbacks(app):
     def exclusive_shape_selection(shape_button):
         single_select = [[]] * len(shape_button)
         try:
-            triggered = ctx.triggered_id.name  # which item triggered the callback
+            triggered = ctx.triggered_id.name  # type: ignore # which item triggered the callback
             single_select[shape_button.index([triggered])] = [triggered]
         except (AttributeError, ValueError):
             return single_select, None  # If nothing selected
