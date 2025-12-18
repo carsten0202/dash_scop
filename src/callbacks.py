@@ -30,6 +30,7 @@ def register_callbacks(app):
     )
     def refresh_file_list(_clicks, _init):
         files = scan_files()
+        print("Scanned files:", files)
         # maybe include simple metadata (mtime, size)?
         enriched = []
         for rel in files:
