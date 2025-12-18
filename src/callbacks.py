@@ -459,17 +459,22 @@ def filter_from_metadata(metadata_df):
 # -------------------------------------------------------------------
 
 
-def scan_files():
+# -------------------------------------------------------------------
+# Helper to scan BASE_DIR for allowed files
+def scan_files(dir_path: Path = settings.BASE_DIR) -> list[str]:
     """Return a sorted list of relative file paths under BASE_DIR with allowed extensions."""
     out = []
-    for root, _, files in os.walk(settings.BASE_DIR):
+    for root, _, files in os.walk(dir_path):
         for f in files:
             p = Path(root) / f
             if p.suffix.lower() in settings.RDS_ALLOWED_EXT:
-                rel = p.resolve().relative_to(settings.BASE_DIR)
+                rel = p.resolve().relative_to(dir_path)
                 out.append(str(rel).replace(os.sep, "/"))
     out.sort()
     return out
+
+
+# -------------------------------------------------------------------
 
 
 def safe_abs_path(rel_path: str) -> Path:
