@@ -75,7 +75,6 @@ RUN python3 -m venv .venv && \
     .venv/bin/python3 -m pip install -r requirements.txt && \
     .venv/bin/python3 -c "import rpy2.robjects as ro; from rpy2.robjects.packages import importr; seurat = importr('Seurat'); print('rpy2 Seurat import successful')"
 
-# COPY testdata/seurat_obj_downsampled.rds data/data.rds
 COPY src .
 
 # Expose and run
