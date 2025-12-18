@@ -41,7 +41,7 @@ def main():
     ip = "0.0.0.0"
     cli_script = "/app/cli.py"
     python_exec = "/app/.venv/bin/python3"
-    container_data_path = "/app/data/"
+    container_data_path = "/app/data"
 
     # Build the apptainer exec command
     cmd = [
@@ -62,7 +62,7 @@ def main():
     ]
 
     # Run
-    print(f"Launching on port {port} using data file: {host_data_path}")
+    print(f"Launching on port {port} using data path: {host_data_path}")
     # Print info for debugging
     print("Running command:", " ".join(cmd))
 
