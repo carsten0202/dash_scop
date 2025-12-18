@@ -13,3 +13,5 @@ RDS_ALLOWED_EXT = {".rds", ".rda", ".rdata"}  # Allowed file extensions
 CACHE_DEFAULT_TIMEOUT = 12 * 60 * 60  # Cache timeout in seconds
 
 max_features = 60  # Maximum number of features to plot at once
+
+print("\nBASE_DIR:", BASE_DIR)
