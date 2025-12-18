@@ -20,7 +20,7 @@ def get_layout(config_data):
                 html.H1("DataSCOPe: Visualization of Data from Single-Cell Omics Projects"),
                 dbc.Col(
                     [
-                        dbc.Button("Rescan", id="rescan", n_clicks=0, color="secondary"),
+                        dbc.Button("Rescan", id="rescan", n_clicks=0),
                         dcc.Dropdown(
                             id="file-dropdown",
                             options=[],  # filled by callback
@@ -65,7 +65,12 @@ def get_layout(config_data):
         dbc.Row(
             [
                 dbc.Col(dbc.Button("Gene Filter Panel", id="open-left-offcanvas", n_clicks=0, disabled=True), width=2),
-                dbc.Col(dbc.Button("Download Plot as SVG", id="download-btn", n_clicks=0, disabled=True, style={"display": "none"}), width=2),
+                dbc.Col(
+                    dbc.Button(
+                        "Download Plot as SVG", id="download-btn", n_clicks=0, disabled=True, style={"display": "none"}
+                    ),
+                    width=2,
+                ),
                 dbc.Col(dbc.Button("Barcode Filter Panel", id="open-right-offcanvas", n_clicks=0), width=2),
             ],
             justify="center",
