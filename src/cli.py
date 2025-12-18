@@ -5,7 +5,7 @@ import secrets
 import click
 import yaml
 
-from settings import DEFAULT_DEBUG, DEFAULT_IP, DEFAULT_PORT, DEFAULT_RDS_FILE
+from settings import DEFAULT_DEBUG, DEFAULT_IP, DEFAULT_PORT, DEFAULT_RDS_PATH
 
 
 @click.command()
@@ -21,12 +21,12 @@ def run(config, debug, ip, port, rds):
     ip = ip or config_data.get("ip", DEFAULT_IP)
     port = port or config_data.get("port", DEFAULT_PORT)
     debug = debug if debug is not None else config_data.get("debug", DEFAULT_DEBUG)
-    rds = rds or config_data.get("rds", DEFAULT_RDS_FILE)
+    rds = rds or config_data.get("rds", DEFAULT_RDS_PATH)
 
     os.environ["DASH_IP"] = ip
     os.environ["DASH_PORT"] = str(port)
     os.environ["DASH_DEBUG"] = str(debug)
-    os.environ["DASH_RDS_FILE"] = rds
+    os.environ["DASH_RDS_PATH"] = rds
 
     from app import main  # Import after setting env variables
 
