@@ -1,7 +1,7 @@
+import os
+
 import dash_bootstrap_components as dbc
 from dash import dcc, html
-
-import settings
 
 
 # -------------------------------------------------------------------
@@ -24,7 +24,7 @@ def get_layout(config_data):
                         dcc.Dropdown(
                             id="file-dropdown",
                             options=[],  # filled by callback
-                            placeholder=f"Browse {settings.BASE_DIR}…",
+                            placeholder=f"Browse {os.getenv('DASH_RDS_PATH', os.getcwd())}…",
                             searchable=True,
                             clearable=False,
                             style={"flex": "1"},
