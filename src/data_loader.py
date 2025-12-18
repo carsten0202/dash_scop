@@ -56,4 +56,10 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
         umap_df = extracted[2]  # UMAP data as pandas DataFrame...
         umap_df.columns = umap_df.columns.str.upper()  # ...and set column names to uppercase
 
-        return {"boxplot": boxplot_df, "gene_counts": gene_matrix_df, "heatmap": heatmap_df, "metadata": metadata_df, "umap": umap_df}
+        return {
+            "boxplot": boxplot_df,
+            "gene_counts": gene_matrix_df,
+            "heatmap": heatmap_df,
+            "metadata": metadata_df,
+            "umap": umap_df,
+        }
