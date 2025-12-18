@@ -29,12 +29,13 @@ def register_callbacks(app):
         prevent_initial_call=True,
     )
     def refresh_file_list(_clicks, _init):
-        files = scan_files()
-        print("Scanned files:", files)
+        print("Scanned files:", os.getenv("DASH_RDS_PATH"))
+        base_dir = Path(os.getenv("DASH_RDS_PATH", os.getcwd()))
+        files = scan_files(base_dir)
         # maybe include simple metadata (mtime, size)?
         enriched = []
         for rel in files:
-            p = (settings.BASE_DIR / rel).resolve()
+            p = (base_dir / rel).resolve()
             st = p.stat()
             enriched.append(
                 {
@@ -72,7 +73,9 @@ def register_callbacks(app):
     def handle_file_selection(rel_value):
         if not rel_value:
             return no_update  # If no file selected, do nothing
-        abs_p = safe_abs_path(rel_value)
+        abs_p = (Path(os.getenv("DASH_RDS_PATH", os.getcwd())) / rel_value).resolve()
+        if not str(abs_p).startswith(str(os.getenv("DASH_RDS_PATH"))):  # prevent path traversal
+            raise ValueError("Invalid path selection")
         dataset_key = str(uuid.uuid4())  # generate a random ID for the dataset we're about to load
         # TODO: Would be nice with actual caching here, so that we do not re-load if the user re-selects a dataset...
         # And/or clering the cache so we don't use too much memory over time.
@@ -460,9 +463,9 @@ def filter_from_metadata(metadata_df):
 
 
 # -------------------------------------------------------------------
-# Helper to scan BASE_DIR for allowed files
-def scan_files(dir_path: Path = settings.BASE_DIR) -> list[str]:
-    """Return a sorted list of relative file paths under BASE_DIR with allowed extensions."""
+# Helper to scan data directory for allowed files
+def scan_files(dir_path: Path) -> list[str]:
+    """Return a sorted list of relative file paths under dir_path with allowed extensions."""
     out = []
     for root, _, files in os.walk(dir_path):
         for f in files:
@@ -475,11 +478,3 @@ def scan_files(dir_path: Path = settings.BASE_DIR) -> list[str]:
 
 
 # -------------------------------------------------------------------
-
-
-def safe_abs_path(rel_path: str) -> Path:
-    """Resolve a user-chosen relative path into an absolute path under BASE_DIR safely."""
-    abs_p = (settings.BASE_DIR / rel_path).resolve()
-    if not str(abs_p).startswith(str(settings.BASE_DIR)):  # prevent path traversal
-        raise ValueError("Invalid path selection")
-    return abs_p
