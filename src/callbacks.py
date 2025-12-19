@@ -29,7 +29,6 @@ def register_callbacks(app):
         prevent_initial_call=True,
     )
     def refresh_file_list(_clicks, _init):
-        print("Scanned files:", os.getenv("DASH_RDS_PATH"))
         base_dir = Path(os.getenv("DASH_RDS_PATH", os.getcwd()))
         files = scan_files(base_dir)
         # maybe include simple metadata (mtime, size)?
@@ -74,7 +73,7 @@ def register_callbacks(app):
         if not rel_value:
             return no_update  # If no file selected, do nothing
         abs_p = (Path(os.getenv("DASH_RDS_PATH", os.getcwd())) / rel_value).resolve()
-        if not str(abs_p).startswith(str(os.getenv("DASH_RDS_PATH"))):  # prevent path traversal
+        if not str(abs_p).startswith(str(Path(os.getenv("DASH_RDS_PATH", "")))):  # prevent path traversal
             raise ValueError("Invalid path selection")
         dataset_key = str(uuid.uuid4())  # generate a random ID for the dataset we're about to load
         # TODO: Would be nice with actual caching here, so that we do not re-load if the user re-selects a dataset...
