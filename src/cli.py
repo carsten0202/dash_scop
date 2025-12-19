@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 import secrets
 
 import click
@@ -26,7 +27,7 @@ def run(config, debug, ip, port, rds):
     os.environ["DASH_IP"] = ip
     os.environ["DASH_PORT"] = str(port)
     os.environ["DASH_DEBUG"] = str(debug)
-    os.environ["DASH_RDS_PATH"] = rds
+    os.environ["DASH_RDS_PATH"] = str(Path(rds).resolve())
 
     from app import main  # Import after setting env variables
 
