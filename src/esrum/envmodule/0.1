@@ -48,5 +48,5 @@ prepend-path PATH "${basedir}/bin"
 
 # Set environment variables (not sure I have any?)
 if { ![info exists ::env(SNPTOOL_DATABASE_PATH)] } {
-   setenv DSCOPE_CONTAINER_PATH "/projects/phenomics-AUDIT/apps/containers/dash_scop/${name}_${version}.sif"
+   setenv DSCOPE_CONTAINER_PATH "/projects/cbmr_shared/apps/modules/software/${name}/${version}/container/${name}_${version}.sif"
 }
