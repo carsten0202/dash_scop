@@ -6,8 +6,6 @@ import socket
 import subprocess
 import sys
 
-from logistro import parser
-
 
 def find_free_port(start=8000, end=9000):
     """Find a free port in the given range."""
@@ -24,7 +22,11 @@ def find_free_port(start=8000, end=9000):
 def main():
     parser = argparse.ArgumentParser(description="Launch DataSCOPE container with auto-selected port and data file.")
     parser.add_argument("--data", default=os.getcwd(), help="Path to directory with .rds data files")
-    parser.add_argument("--container", default=os.getenv("DSCOPE_CONTAINER_PATH", "datascope_latest.sif"), help="Apptainer/Singularity container file")
+    parser.add_argument(
+        "--container",
+        default=os.getenv("DSCOPE_CONTAINER_PATH", "datascope_latest.sif"),
+        help="Apptainer/Singularity container file",
+    )
     parser.add_argument("--port-start", type=int, default=49152, help="Port search start")
     parser.add_argument("--port-end", type=int, default=65535, help="Port search end")
 
@@ -62,7 +64,7 @@ def main():
         "--rds",
         container_data_path,
         "--debug",
-        "False"
+        "False",
     ]
 
     # Run
