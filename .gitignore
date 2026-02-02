@@ -178,3 +178,4 @@ cython_debug/
 src/.DS_Store
 testdata/.DS_Store
 .vscode/settings.json
+/.vscode
