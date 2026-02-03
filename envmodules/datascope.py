@@ -27,8 +27,8 @@ def main():
         default=os.getenv("DSCOPE_CONTAINER_PATH", "datascope_latest.sif"),
         help="Apptainer/Singularity container file",
     )
-    parser.add_argument("--port-start", type=int, default=49152, help="Port search start")
-    parser.add_argument("--port-end", type=int, default=65535, help="Port search end")
+    parser.add_argument("--port-start", type=int, default=8800, help="Port search start")
+    parser.add_argument("--port-end", type=int, default=9000, help="Port search end")
 
     args = parser.parse_args()
 
