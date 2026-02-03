@@ -38,11 +38,12 @@ def main():
         print(f"ERROR: Data directory not found (or it isn't a directory): {host_data_path}")
         sys.exit(1)
 
-    # Find a free port
+    # Find a free port and record hostname
     port = find_free_port(start=args.port_start, end=args.port_end)
+    hostname = socket.gethostname()
 
     # Set any other parameters you need
-    ip = "0.0.0.0"
+    ip = socket.gethostbyname(hostname)
     cli_script = "/app/cli.py"
     python_exec = "/app/.venv/bin/python3"
     container_data_path = "/app/data"
@@ -77,4 +78,11 @@ def main():
 
 
 if __name__ == "__main__":
+
+    hostname = socket.gethostname()
+    IPAddr = socket.gethostbyname(hostname)
+
+    print("Your Computer Name is:", hostname)
+    print("Your Computer IP Address is:", IPAddr)
+
     main()
