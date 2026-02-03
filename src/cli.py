@@ -11,7 +11,7 @@ from settings import DEFAULT_DEBUG, DEFAULT_IP, DEFAULT_PORT, DEFAULT_RDS_PATH
 
 @click.command()
 @click.option("--config", type=click.Path(exists=True), help="Path to a JSON or YAML config file.")
-@click.option("--debug", is_flag=True, default=DEFAULT_DEBUG, help="Enable Dash debug mode.")
+@click.option("--debug/--no-debug", is_flag=True, default=DEFAULT_DEBUG, help="Enable Dash debug mode.")
 @click.option("--ip", help="IP address to run the Dash app on.")
 @click.option("--port", type=int, help="Port number for the Dash app.")
 @click.option("-r", "--rds", type=str, help="Path to RDS datafile containing one Seurat object.")
