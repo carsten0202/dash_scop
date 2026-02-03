@@ -64,8 +64,7 @@ def main():
         str(port),
         "--rds",
         container_data_path,
-        "--debug",
-        "False",
+        "--no-debug",
     ]
 
     # Run
