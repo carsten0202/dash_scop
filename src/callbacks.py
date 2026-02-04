@@ -436,24 +436,26 @@ def generate_boxplot(boxplot_df, selected_barcodes, shape_column, gene, barcodes
 def filter_from_metadata(metadata_df):
     filter_schema = []
     for series in [metadata_df[c] for c in metadata_df.columns]:  # Loop over series in metadata data frame
-        if series.dtype in ["object", "category"]:
+        if series.dtype in ["category"]: # Note that some types convert to category in data_loader.py
             f = {
                 "name": series.name,
-                "label": "Seurat@meta.data$" + series.name,
+                "label": series.name,
                 "type": "categorical",
                 "values": sorted(series.unique()),
                 "default": [],  # empty means "no filter selected"
             }
-        else:
+        elif series.dtype in ["int64", "float64", "int32", "float32"]:
             f = {
                 "name": series.name,
-                "label": "Seurat@meta.data$" + series.name,
+                "label": series.name,
                 "type": "numeric_range",
                 "min": int(series.min()),
                 "max": int(series.max()),
                 "step": 100,
                 "default": [],
             }
+        else:
+            continue  # Skip unsupported types
         filter_schema.append(f)
     return filter_schema
 
