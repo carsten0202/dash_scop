@@ -34,12 +34,12 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
         metadata_df = pd.concat(
             [
                 extracted[0][
-                    [x for x in extracted[0].columns if extracted[0][x].dtype in ["object", "category"]]
+                    [x for x in extracted[0].columns if extracted[0][x].dtype in ["object", "category", "str"]]
                 ].astype(
                     "category"
-                ),  # Extract columns from metadata as pandas DataFrame that are of type 'object' or 'category'
+                ),  # Extract columns from metadata as pandas DataFrame that are of type 'object', 'category' or 'str'
                 extracted[0][
-                    [x for x in extracted[0].columns if extracted[0][x].dtype not in ["object", "category"]]
+                    [x for x in extracted[0].columns if extracted[0][x].dtype not in ["object", "category", "str"]]
                 ],  # Extract non-categorical (probably numeric) columns from metadata
             ],
             axis=1,
