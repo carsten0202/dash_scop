@@ -403,6 +403,22 @@ def register_offcanvas_callbacks(app):
             return single_select, None  # If nothing selected
         return single_select, triggered
 
+    @app.callback(
+        Output("config-store", "data"),
+        Output("upload-status", "children"),
+        Input("upload-config", "contents"),
+        State("upload-config", "filename"),
+        prevent_initial_call=True,
+    )
+    def on_upload(contents, filename):
+        if not contents:
+            return no_update, no_update
+        try:
+            data = parse_upload(contents, filename)
+            return data, f"Loaded: {filename}"
+        except Exception as e:
+            return no_update, f"Upload failed: {e}"
+
 
 # -------------------------------------------------------------------
 # Helper to generate a boxplot figure
@@ -478,4 +494,26 @@ def scan_files(dir_path: Path) -> list[str]:
     return out
 
 
+# -------------------------------------------------------------------
+
+# -------------------------------------------------------------------
+# Helper to parse uploaded config/filter files
+def parse_upload(contents: str, filename: str):
+    """
+    contents is like: 'data:application/json;base64,AAAA...'
+    returns python object (dict/list/...) you can store in dcc.Store
+    """
+    pass
+#    header, b64data = contents.split(",", 1)
+#    raw = base64.b64decode(b64data)
+
+    # Simple routing by filename extension (you can get stricter)
+#    if filename.lower().endswith(".json"):
+#        return json.loads(raw.decode("utf-8"))
+
+    # Example: allow plain text filters
+#    if filename.lower().endswith(".txt"):
+#        return {"filter_text": raw.decode("utf-8")}
+
+#    raise ValueError(f"Unsupported file type: {filename}")
 # -------------------------------------------------------------------
