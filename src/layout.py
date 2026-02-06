@@ -138,6 +138,13 @@ def build_left(config_data):
                 placeholder="Select genes to display...",
                 value=config_data.get("genes", []),
             ),
+            dcc.Upload(
+                id="upload-config",
+                children=html.Button("Upload config / filter file"),
+                multiple=False,  # single file
+            ),
+            html.Div(id="upload-status", style={"marginTop": "0.75rem"}),
+            dcc.Store(id="config-store"),  # parsed config lives here
         ],
     )
     return html_div
