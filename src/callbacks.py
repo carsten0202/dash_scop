@@ -1,4 +1,6 @@
+import base64
 import io
+import json
 import os
 import time
 import uuid
@@ -503,17 +505,16 @@ def parse_upload(contents: str, filename: str):
     contents is like: 'data:application/json;base64,AAAA...'
     returns python object (dict/list/...) you can store in dcc.Store
     """
-    pass
-#    header, b64data = contents.split(",", 1)
-#    raw = base64.b64decode(b64data)
+    header, b64data = contents.split(",", 1)
+    raw = base64.b64decode(b64data)
 
     # Simple routing by filename extension (you can get stricter)
-#    if filename.lower().endswith(".json"):
-#        return json.loads(raw.decode("utf-8"))
+    if filename.lower().endswith(".json"):
+        return json.loads(raw.decode("utf-8"))
 
     # Example: allow plain text filters
-#    if filename.lower().endswith(".txt"):
-#        return {"filter_text": raw.decode("utf-8")}
+    if filename.lower().endswith(".txt"):
+        return {"filter_text": raw.decode("utf-8")}
 
-#    raise ValueError(f"Unsupported file type: {filename}")
+    raise ValueError(f"Unsupported file type: {filename}")
 # -------------------------------------------------------------------
