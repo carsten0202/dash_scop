@@ -10,9 +10,6 @@ from layout import get_layout
 # Initialize Dash app
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
-# Register callbacks
-register_callbacks(app)
-
 
 # Custom middleware that checks token in URL
 class TokenAuthMiddleware:
@@ -40,15 +37,16 @@ class TokenAuthMiddleware:
 
 
 def main(config_data):
-    ip = os.getenv("DASH_IP", "127.0.0.1")
-    port = str(os.getenv("DASH_PORT", "8050"))
-    debug = os.getenv("DASH_DEBUG", "True") == "True"
-    token = os.environ.get("DASH_TOKEN", "SECRET_TOKEN")  # 64-character hex string (256 bits)
+    ip = os.getenv("DATASCOPE_IP", "127.0.0.1")
+    port = str(os.getenv("DATASCOPE_PORT", "8050"))
+    debug = os.getenv("DATASCOPE_DEBUG", "True") == "True"
+    token = os.environ.get("DATASCOPE_TOKEN", "SECRET_TOKEN")  # 64-character hex string (256 bits)
 
     print(f"\n[INFO] Dash app available at http://{ip}:{port}/?token={token}")
 
     app.server.wsgi_app = TokenAuthMiddleware(app.server.wsgi_app, token)  # Wrap with middleware
     app.layout = get_layout(config_data)
+    register_callbacks(app) # Register callbacks
     app.run(host=ip, port=port, debug=debug)
 
 
