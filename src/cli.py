@@ -28,9 +28,10 @@ def run(config, debug, ip, port, rds):
     os.environ["DATASCOPE_DEBUG"] = str(debug)
     os.environ["DATASCOPE_RDS_PATH"] = str(Path(rds).resolve())
 
-    from app import main  # Import after setting env variables
+#    from app import main  # Import after setting env variables
+    import app
 
-    main(config_data)
+    app.main(config_data)
 
 
 def load_config(config_file):
