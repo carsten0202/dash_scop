@@ -31,7 +31,7 @@ def register_callbacks(app):
         prevent_initial_call=True,
     )
     def refresh_file_list(_clicks, _init):
-        base_dir = Path(os.getenv("DASH_RDS_PATH", os.getcwd()))
+        base_dir = Path(os.getenv("DATASCOPE_RDS_PATH", settings.DEFAULT_RDS_PATH))
         files = scan_files(base_dir)
         # maybe include simple metadata (mtime, size)?
         enriched = []
