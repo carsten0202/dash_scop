@@ -133,7 +133,7 @@ def register_callbacks(app):
         if shape_column not in schema_names:
             shape_column = None
 
-        for f, id_ in zip(filters_cells, filters_ids):
+        for f, id_ in zip(filters_cells, filters_ids, strict=True):
             selected_indices = metadata_df.index[metadata_df[id_["name"]].isin(f)]
             if selected_indices.size:
                 selected_cells = selected_cells.intersection(selected_indices)
