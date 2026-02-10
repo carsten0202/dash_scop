@@ -47,6 +47,6 @@ prepend-path PATH "${basedir}/bin"
 # prepend-path PYTHONPATH "${basedir}/"
 
 # Set environment variables
-if { ![info exists ::env("DATASCOPE_CONTAINER_PATH")] } {
+if { ![info exists ::env(DATASCOPE_CONTAINER_PATH)] } {
    setenv DATASCOPE_CONTAINER_PATH "/projects/cbmr_shared/apps/modules/software/${name}/${version}/container/${name}_${version}.sif"
 }
