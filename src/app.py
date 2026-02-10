@@ -43,7 +43,7 @@ def main(config_data):
     debug = os.getenv("DATASCOPE_DEBUG", "True") == "True"
 
     # Get token from environment variable and wrap app with middleware if token is set
-    token = os.environ.get("DATASCOPE_TOKEN")  # 64-character hex string (256 bits)
+    token = settings.DATASCOPE_TOKEN  # 64-character hex string (256 bits)
     if token:
         app.server.wsgi_app = TokenAuthMiddleware(app.server.wsgi_app, token)  # Wrap with middleware
         print(f"\n[INFO] Dash app available at http://{ip}:{port}/?token={token}")
