@@ -8,9 +8,12 @@ from rpy2.robjects.packages import importr
 from scipy.stats import zscore
 
 # Load R packages
-base = importr("base")
-seurat = importr("Seurat")
-stats = importr("stats")
+try:
+    importr("base")
+    importr("Seurat")
+    importr("stats")
+except Exception as e:
+    raise ImportError("Required R packages not found. Please ensure 'Seurat' and 'stats' are installed in your R environment.")
 
 
 def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"):
