@@ -14,5 +14,4 @@ CACHE_DEFAULT_TIMEOUT = 12 * 60 * 60  # Cache timeout in seconds
 max_features = 60  # Maximum number of features to plot at once
 
 # Set the environment variables for default settings - cli may change these
-os.environ["DATASCOPE_RDS_PATH"] = DEFAULT_RDS_PATH
 os.environ["DATASCOPE_TOKEN"] = os.environ.get("DATASCOPE_TOKEN", secrets.token_hex(32))  # 64-character hex string (256 bits)
