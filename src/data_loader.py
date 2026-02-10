@@ -13,7 +13,7 @@ try:
     importr("Seurat")
     importr("stats")
 except Exception as e:
-    raise ImportError("Required R packages not found. Please ensure 'Seurat' and 'stats' are installed in your R environment.")
+    raise ImportError("Required R packages not found. Please ensure 'Seurat' and 'stats' are installed in your R environment.") from e
 
 
 def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"):
