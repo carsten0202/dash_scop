@@ -24,10 +24,10 @@ def run(config, debug, ip, port, rds):
     debug = debug if debug is not None else config_data.get("debug", DEFAULT_DEBUG)
     rds = rds or config_data.get("rds", DEFAULT_RDS_PATH)
 
-    os.environ["DASH_IP"] = ip
-    os.environ["DASH_PORT"] = str(port)
-    os.environ["DASH_DEBUG"] = str(debug)
-    os.environ["DASH_RDS_PATH"] = str(Path(rds).resolve())
+    os.environ["DATASCOPE_IP"] = ip
+    os.environ["DATASCOPE_PORT"] = str(port)
+    os.environ["DATASCOPE_DEBUG"] = str(debug)
+    os.environ["DATASCOPE_RDS_PATH"] = str(Path(rds).resolve())
 
     from app import main  # Import after setting env variables
 
