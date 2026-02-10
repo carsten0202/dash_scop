@@ -40,11 +40,16 @@ def main(config_data):
     ip = os.getenv("DATASCOPE_IP", "127.0.0.1")
     port = str(os.getenv("DATASCOPE_PORT", "8050"))
     debug = os.getenv("DATASCOPE_DEBUG", "True") == "True"
-    token = os.environ.get("DATASCOPE_TOKEN", "SECRET_TOKEN")  # 64-character hex string (256 bits)
 
-    print(f"\n[INFO] Dash app available at http://{ip}:{port}/?token={token}")
+    # Get token from environment variable and wrap app with middleware if token is set
+    token = os.environ.get("DATASCOPE_TOKEN")  # 64-character hex string (256 bits)
+    if token:
+        app.server.wsgi_app = TokenAuthMiddleware(app.server.wsgi_app, token)  # Wrap with middleware
+        print(f"\n[INFO] Dash app available at http://{ip}:{port}/?token={token}")
+    else:
+        print(f"\n[INFO] Dash app available at http://{ip}:{port}/")
+        print("[WARNING] No token set, not recommended for production")
 
-    app.server.wsgi_app = TokenAuthMiddleware(app.server.wsgi_app, token)  # Wrap with middleware
     app.layout = get_layout(config_data)
     register_callbacks(app) # Register callbacks
     app.run(host=ip, port=port, debug=debug)
