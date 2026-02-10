@@ -1,3 +1,4 @@
+import logging
 import os
 
 import dash_bootstrap_components as dbc
@@ -10,6 +11,9 @@ import settings
 
 # Initialize Dash app
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+
+# Suppress some of Werkzeug logging to avoid cluttering the console
+logging.getLogger("werkzeug").setLevel(logging.ERROR)
 
 
 # Custom middleware that checks token in URL
