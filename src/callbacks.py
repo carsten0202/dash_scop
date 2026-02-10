@@ -74,15 +74,16 @@ def register_callbacks(app):
     def handle_file_selection(rel_value):
         if not rel_value:
             return no_update  # If no file selected, do nothing
-        abs_p = (Path(os.getenv("DASH_RDS_PATH", os.getcwd())) / rel_value).resolve()
-        if not str(abs_p).startswith(str(Path(os.getenv("DASH_RDS_PATH", "")))):  # prevent path traversal
-            raise ValueError("Invalid path selection")
+        str_path = Path(os.getenv("DATASCOPE_RDS_PATH", settings.DEFAULT_RDS_PATH))
+        abs_path = (str_path / rel_value).resolve()
+        if not str(abs_path).startswith(str(str_path)):  # prevent path traversal
+            raise ValueError(f"Invalid path selection - {abs_path}")
         dataset_key = str(uuid.uuid4())  # generate a random ID for the dataset we're about to load
         # TODO: Would be nice with actual caching here, so that we do not re-load if the user re-selects a dataset...
         # And/or clering the cache so we don't use too much memory over time.
         try:
-            st = abs_p.stat()
-            data_dfs = load_seurat_rds(abs_p)  # Don't send this object to the browser
+            st = abs_path.stat()
+            data_dfs = load_seurat_rds(abs_path)  # Don't send this object to the browser
             cache.clear()  # Clear previous cache to save memory
             cache.set(
                 dataset_key, data_dfs, timeout=None
@@ -95,7 +96,7 @@ def register_callbacks(app):
                 dbc.Alert(
                     [
                         html.Strong("Loaded: "),
-                        html.Code(str(abs_p)),
+                        html.Code(str(abs_path)),
                         html.Br(),
                         f"Size: {st.st_size / 1_048_576:.2f} MB · Modified: {time.ctime(st.st_mtime)}",
                     ],
