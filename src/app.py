@@ -6,6 +6,7 @@ from werkzeug.wrappers import Request, Response
 
 from callbacks import register_callbacks
 from layout import get_layout
+import settings
 
 # Initialize Dash app
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -37,8 +38,8 @@ class TokenAuthMiddleware:
 
 
 def main(config_data):
-    ip = os.getenv("DATASCOPE_IP", "127.0.0.1")
-    port = str(os.getenv("DATASCOPE_PORT", "8050"))
+    ip = os.getenv("DATASCOPE_IP", settings.DEFAULT_IP)
+    port = str(os.getenv("DATASCOPE_PORT", settings.DEFAULT_PORT))
     debug = os.getenv("DATASCOPE_DEBUG", "True") == "True"
 
     # Get token from environment variable and wrap app with middleware if token is set
