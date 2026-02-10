@@ -3,7 +3,7 @@
 # DataSCOPe
 #
 # Author:       Carsten Friis Rundsten
-# Date:         18/12/2024
+# Date:         10/02/2026
 #
 #################################################################################
 
@@ -30,7 +30,7 @@ set version [file tail [module-info name]]
 
 conflict "${name}"
 prereq "apptainer"
-prereq "python"
+prereq "python/3.12.8"
 
 module-whatis "${name} ${version} - Visualization of Data from Single Cell Omics Projects."
 
