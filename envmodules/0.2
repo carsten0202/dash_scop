@@ -1,0 +1,52 @@
+#%Module1.0######################################################################
+#
+# DataSCOPe
+#
+# Author:       Carsten Friis Rundsten
+# Date:         10/02/2026
+#
+#################################################################################
+
+#
+# Help messages
+
+proc ModulesHelp { } {
+   set name [file dirname [module-info name]]
+   set version [file tail [module-info name]]
+   puts stderr "\tLoads the ${name} version ${version} environment"
+   puts stderr "\tFor further information, use 'module display [module-info name]'"
+}
+
+proc ModulesDisplay { } {
+   puts stderr "\nDataSCOPe is a tool for Visualization of Data from Single Cell Omics Projects."
+}
+
+
+#
+# Variables, Conflicts and Prereqs, Whatis
+
+set name [file dirname [module-info name]]
+set version [file tail [module-info name]]
+
+conflict "${name}"
+prereq "apptainer"
+prereq "python/3.12.8"
+
+module-whatis "${name} ${version} - Visualization of Data from Single Cell Omics Projects."
+
+
+#
+# Modify environment variables
+
+set basedir "/projects/cbmr_shared/apps/modules/software/${name}/${version}"
+
+# Add bin to PATH
+prepend-path PATH "${basedir}/bin"
+
+# Add python lib to PYTHONPATH (Currently not needed as all packages for wrapper script are core)
+# prepend-path PYTHONPATH "${basedir}/"
+
+# Set environment variables (not sure I have any?)
+if { ![info exists ::env(SNPTOOL_DATABASE_PATH)] } {
+   setenv DSCOPE_CONTAINER_PATH "/projects/cbmr_shared/apps/modules/software/${name}/${version}/container/${name}_${version}.sif"
+}
