@@ -12,10 +12,6 @@ import settings
 # Initialize Dash app
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
-# Suppress some of Werkzeug logging to avoid cluttering the console
-logging.getLogger("werkzeug").setLevel(logging.ERROR)
-
-
 # Custom middleware that checks token in URL
 class TokenAuthMiddleware:
     def __init__(self, app, token):
@@ -50,13 +46,15 @@ def main(config_data):
     token = settings.DATASCOPE_TOKEN  # 64-character hex string (256 bits)
     if token:
         app.server.wsgi_app = TokenAuthMiddleware(app.server.wsgi_app, token)  # Wrap with middleware
-        print(f"\n[INFO] Dash app available at http://{ip}:{port}/?token={token}")
+        print(f"\n[INFO] Dash app available at http://{ip}:{port}/?token={token}\n")
     else:
         print(f"\n[INFO] Dash app available at http://{ip}:{port}/")
         print("[WARNING] No token set, not recommended for production")
 
+    app.logger.disabled = True   # <-- kills "Dash is running on ..."
     app.layout = get_layout(config_data)
     register_callbacks(app) # Register callbacks
+
     app.run(host=ip, port=port, debug=debug)
 
 
