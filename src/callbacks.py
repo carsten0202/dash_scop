@@ -5,6 +5,7 @@ import os
 import time
 import uuid
 from pathlib import Path
+import logging
 
 import dash_bootstrap_components as dbc
 import plotly.express as px
@@ -18,6 +19,8 @@ from layout import make_filter_component
 # Store the last generated figure
 last_figure = None
 
+# Activate logging
+logger = logging.getLogger(__name__)
 
 def register_callbacks(app):
     # Initialize Flask-Caching **after** app creation
