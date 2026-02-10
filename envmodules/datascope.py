@@ -24,7 +24,7 @@ def main():
     parser.add_argument("--data", default=os.getcwd(), help="Path to directory with .rds data files")
     parser.add_argument(
         "--container",
-        default=os.getenv("DSCOPE_CONTAINER_PATH", "datascope_latest.sif"),
+        default=os.getenv("DATASCOPE_CONTAINER_PATH", "datascope_latest.sif"),
         help="Apptainer/Singularity container file",
     )
     parser.add_argument("--port-start", type=int, default=8800, help="Port search start")
