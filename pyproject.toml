@@ -35,7 +35,15 @@ packages = ["src"]
 [tool.ruff]
 line-length = 120
 target-version = "py312"
-select = ["E", "F", "I"]  # Common linting rules
+select = [
+    "E",   # pycodestyle
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # bugbear
+]
+ignore = [
+    "E501",  # line length (let formatter handle it)
+]
 fix = true  # Auto-fix linting errors on save
 
 [tool.mypy]
