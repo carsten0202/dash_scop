@@ -37,7 +37,10 @@ class TokenAuthMiddleware:
         return self.app(environ, start_response)
 
 
-def main(config_data):
+def main(config_data: dict | None = None):
+    config_data = {} if config_data is None else dict(config_data)  # Ensure it's a dict
+    parse_config(config_data)  # Update settings from config data
+
     ip = os.getenv("DATASCOPE_IP", settings.DEFAULT_IP)
     port = str(os.getenv("DATASCOPE_PORT", settings.DEFAULT_PORT))
     debug = os.getenv("DATASCOPE_DEBUG", "True") == "True"
@@ -59,4 +62,26 @@ def main(config_data):
 
 
 if __name__ == "__main__":
-    main({})
+    main()
+
+
+# -------------------------------------------------------------------
+# Helper to parse uploaded config/filter files
+def parse_config(config_data: dict) -> None:
+    """
+    contents is like: 'data:application/json;base64,AAAA...'
+    returns python object (dict/list/...) you can store in dcc.Store
+    """
+#    _, b64data = contents.split(",", 1)
+#    raw = base64.b64decode(b64data)
+
+    # Simple routing by filename extension (you can get stricter)
+#    if filename.lower().endswith(".json"):
+#        return json.loads(raw.decode("utf-8"))
+
+    # Example: allow plain text filters
+#    if filename.lower().endswith(".txt"):
+#        return {"filter_text": raw.decode("utf-8")}
+
+#    raise ValueError(f"Unsupported file type: {filename}")
+# -------------------------------------------------------------------
