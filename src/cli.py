@@ -32,19 +32,17 @@ def load_config(ctx, param, config):
 @click.pass_context
 def cli(ctx, debug, ip, port, rds_path):
     """Launch the Dash app with configurable IP, port, and debug mode."""
-#    config_data = load_config(config) if config else {}
-    config_data = {}
 
     print(f"CLI args: ip={ip}, port={port}, debug={debug}, rds_path={rds_path}")
 
     # Set env vars from config file, then update with CLI args (CLI > config > defaults)
-    os.environ.update(ctx.default_map)
+    os.environ.update({k:str(v) for k,v in ctx.default_map.items()}) # v must be strings to be set as env vars
     os.environ["DATASCOPE_IP"] = ip
     os.environ["DATASCOPE_PORT"] = str(port)
     os.environ["DATASCOPE_DEBUG"] = str(debug)
     os.environ["DATASCOPE_RDS_PATH"] = str(Path(rds_path).resolve())
 
-    main(config_data)
+    main()
 
 if __name__ == "__main__":
     cli()
