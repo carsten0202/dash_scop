@@ -5,12 +5,12 @@ from pathlib import Path
 import click
 import yaml
 
+from app import main
 from settings import DEFAULT_DEBUG, DEFAULT_IP, DEFAULT_PORT, DEFAULT_RDS_PATH
 
 
 def load_config(ctx, param, config):
     """Load configuration from a YAML or JSON file."""
-    print(f"Parsing config data: {config}; {type(config)}")
     if config:
         with open(config, "r") as f:
             if config.endswith(".json"):
@@ -26,30 +26,23 @@ def load_config(ctx, param, config):
 @click.command()
 @click.option("--config", type=click.Path(exists=True), default=".yaml", callback=load_config, expose_value=False, is_eager=True, help="Path to a JSON or YAML config file.")
 @click.option("--debug/--no-debug", is_flag=True, default=DEFAULT_DEBUG, help="Enable Dash debug mode.")
-@click.option("--ip", help="IP address to run the Dash app on.")
-@click.option("--port", type=int, help="Port number for the Dash app.")
-@click.option("-r", "--rds", type=str, default=DEFAULT_RDS_PATH, help="Path to RDS datafile containing one Seurat object.")
+@click.option("--ip", default=DEFAULT_IP, help="IP address to run the Dash app on.")
+@click.option("--port", type=int, default=DEFAULT_PORT, help="Port number for the Dash app.")
+@click.option("-r", "--rds-path", type=str, default=DEFAULT_RDS_PATH, help="Path to RDS datafile containing one Seurat object.")
 @click.pass_context
-def cli(ctx, debug, ip, port, rds):
+def cli(ctx, debug, ip, port, rds_path):
     """Launch the Dash app with configurable IP, port, and debug mode."""
 #    config_data = load_config(config) if config else {}
     config_data = {}
 
-#    ip = ip or config_data.get("ip", DEFAULT_IP)
-#    port = port or config_data.get("port", DEFAULT_PORT)
-#    debug = debug if debug is not None else config_data.get("debug", DEFAULT_DEBUG)
-#    rds = rds or config_data.get("rds", DEFAULT_RDS_PATH)
-    print(f"CLI args: ip={ip}, port={port}, debug={debug}, rds={rds}")
+    print(f"CLI args: ip={ip}, port={port}, debug={debug}, rds_path={rds_path}")
 
     os.environ["DATASCOPE_IP"] = ip
     os.environ["DATASCOPE_PORT"] = str(port)
     os.environ["DATASCOPE_DEBUG"] = str(debug)
-    os.environ["DATASCOPE_RDS_PATH"] = str(Path(rds).resolve())
+    os.environ["DATASCOPE_RDS_PATH"] = str(Path(rds_path).resolve())
 
-#    from app import main  # Import after setting env variables
-    import app
-
-    app.main(config_data)
+    main(config_data)
 
 if __name__ == "__main__":
     cli()
