@@ -9,6 +9,7 @@ import settings
 from callbacks import register_callbacks
 from layout import get_layout
 
+
 # Custom middleware that checks token in URL
 class TokenAuthMiddleware:
     def __init__(self, app, token):
@@ -35,11 +36,7 @@ class TokenAuthMiddleware:
 
 
 def main(config_data: dict | None = None):
-    config_data = {} if config_data is None else dict(config_data)  # Ensure it's a dict
-    parse_config(config_data)  # Update settings from config data
-
-    # Initialize Dash app
-    app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+    app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP]) # Initialize Dash app
 
     ip = os.getenv("DATASCOPE_IP", settings.DEFAULT_IP)
     port = str(os.getenv("DATASCOPE_PORT", settings.DEFAULT_PORT))
@@ -53,7 +50,7 @@ def main(config_data: dict | None = None):
         print(f"\n[INFO] Dash app available at http://{ip}:{port}/?token={token}\n")
     else:
         print(f"\n[INFO] Dash app available at http://{ip}:{port}/")
-        print("[WARNING] No token set, not recommended for production")
+        logging.warning("No token set, not recommended for production")
 
     app.logger.disabled = True   # <-- kills "Dash is running on ..."
     app.layout = get_layout(config_data)
