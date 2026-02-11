@@ -1,12 +1,12 @@
 # Default IP address and port
-DATASCOPE_IP: 127.0.0.1
-DATASCOPE_PORT: 8080
+ip: 127.0.0.1
+port: 8080
 
 # Enable debug mode by default
-DATASCOPE_DEBUG: True
+debug: True
 
 # Default RDS file path is current working directory
-DATASCOPE_RDS_PATH:  os.getcwd())
+DATASCOPE_RDS_PATH: ./
 
 # Set a default token if not provided via environment variable (not recommended for production)
 DATASCOPE_TOKEN: 532714c604bbf79f74fcb0b3be6919ec450b150dd362ae4f926c1c566d3d2f20
