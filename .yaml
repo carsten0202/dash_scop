@@ -1,6 +1,6 @@
 # Default IP address and port
 DATASCOPE_IP: 127.0.0.1
-DATASCOPE_PORT: 8050
+DATASCOPE_PORT: 8080
 
 # Enable debug mode by default
 DATASCOPE_DEBUG: True
