@@ -37,6 +37,8 @@ def cli(ctx, debug, ip, port, rds_path):
 
     print(f"CLI args: ip={ip}, port={port}, debug={debug}, rds_path={rds_path}")
 
+    # Set env vars from config file, then update with CLI args (CLI > config > defaults)
+    os.environ.update(ctx.default_map)
     os.environ["DATASCOPE_IP"] = ip
     os.environ["DATASCOPE_PORT"] = str(port)
     os.environ["DATASCOPE_DEBUG"] = str(debug)
