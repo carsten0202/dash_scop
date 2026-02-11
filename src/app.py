@@ -38,15 +38,15 @@ def main(config_data: dict | None = None):
     config_data = {} if config_data is None else dict(config_data)  # Ensure it's a dict
     parse_config(config_data)  # Update settings from config data
 
+    # Initialize Dash app
+    app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+
     ip = os.getenv("DATASCOPE_IP", settings.DEFAULT_IP)
     port = str(os.getenv("DATASCOPE_PORT", settings.DEFAULT_PORT))
     debug = os.getenv("DATASCOPE_DEBUG", "True") == "True"
 
-    # Initialize Dash app
-    app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-
     # Get token from environment variable and wrap app with middleware if token is set
-    token = settings.DATASCOPE_TOKEN  # 64-character hex string (256 bits)
+    token = os.getenv("DATASCOPE_TOKEN", settings.DATASCOPE_TOKEN)  # Get from env var or use default(which is randomly generated at startup)
     if token:
         app.server.wsgi_app = TokenAuthMiddleware(app.server.wsgi_app, token)  # Wrap with middleware
         logging.info("Token authentication enabled for Dash app.")
