@@ -9,9 +9,6 @@ import settings
 from callbacks import register_callbacks
 from layout import get_layout
 
-# Initialize Dash app
-app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-
 # Custom middleware that checks token in URL
 class TokenAuthMiddleware:
     def __init__(self, app, token):
@@ -44,6 +41,9 @@ def main(config_data: dict | None = None):
     ip = os.getenv("DATASCOPE_IP", settings.DEFAULT_IP)
     port = str(os.getenv("DATASCOPE_PORT", settings.DEFAULT_PORT))
     debug = os.getenv("DATASCOPE_DEBUG", "True") == "True"
+
+    # Initialize Dash app
+    app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
     # Get token from environment variable and wrap app with middleware if token is set
     token = settings.DATASCOPE_TOKEN  # 64-character hex string (256 bits)
