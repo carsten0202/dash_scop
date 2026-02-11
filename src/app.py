@@ -1,13 +1,29 @@
+import json
 import logging
 import os
 
 import dash_bootstrap_components as dbc
+import yaml
 from dash import Dash
 from werkzeug.wrappers import Request, Response
 
 import settings
 from callbacks import register_callbacks
 from layout import get_layout
+
+
+def load_config(ctx, param, config):
+    """Load configuration from a YAML or JSON file."""
+    if os.path.isfile(config):
+        with open(config, "r") as f:
+            if config.endswith(".json"):
+                ctx.default_map = json.load(f)
+            elif config.endswith(".yaml") or config.endswith(".yml"):
+                ctx.default_map = yaml.safe_load(f)
+            else:
+                raise ValueError("Unsupported config file format. Use JSON or YAML.")
+        logging.info(f"Parsing config data: {ctx.default_map}")
+    return config
 
 
 # Custom middleware that checks token in URL
@@ -53,7 +69,7 @@ def main(config_data: dict | None = None):
         logging.warning("No token set, not recommended for production")
 
     app.logger.disabled = True   # <-- kills "Dash is running on ..."
-    app.layout = get_layout(config_data)
+    app.layout = get_layout({})
     register_callbacks(app) # Register callbacks
 
     app.run(host=ip, port=port, debug=debug)
