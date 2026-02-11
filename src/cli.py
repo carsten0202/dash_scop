@@ -28,7 +28,7 @@ def load_config(ctx, param, config):
 @click.option("--debug/--no-debug", is_flag=True, default=DEFAULT_DEBUG, help="Enable Dash debug mode.")
 @click.option("--ip", help="IP address to run the Dash app on.")
 @click.option("--port", type=int, help="Port number for the Dash app.")
-@click.option("-r", "--rds", type=str, help="Path to RDS datafile containing one Seurat object.")
+@click.option("-r", "--rds", type=str, default=DEFAULT_RDS_PATH, help="Path to RDS datafile containing one Seurat object.")
 @click.pass_context
 def cli(ctx, debug, ip, port, rds):
     """Launch the Dash app with configurable IP, port, and debug mode."""
