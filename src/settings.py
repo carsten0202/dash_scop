@@ -9,7 +9,6 @@ DEFAULT_RDS_PATH = os.getenv("DATASCOPE_RDS_PATH", os.getcwd())  # Default RDS f
 
 # Set a default token if not provided via environment variable (not recommended for production)
 DATASCOPE_TOKEN = os.environ.get("DATASCOPE_TOKEN", secrets.token_hex(32))  # 64-character hex string (256 bits)
-DATASCOPE_TOKEN = "532714c604bbf79f74fcb0b3be6919ec450b150dd362ae4f926c1c566d3d2f20" # Test code
 
 # Other Settings
 RDS_ALLOWED_EXT = {".rds", ".rda", ".rdata"}  # Allowed file extensions
