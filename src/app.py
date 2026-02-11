@@ -61,33 +61,3 @@ def main(config_data: dict | None = None):
 
 if __name__ == "__main__":
     main()
-
-
-# -------------------------------------------------------------------
-# Helper to parse uploaded config/filter files
-def parse_config(config_data: dict) -> None:
-    """
-    contents is like: 'data:application/json;base64,AAAA...'
-    returns python object (dict/list/...) you can store in dcc.Store
-    """
-    print(f"Parsing config data: {config_data}")
-
-    # Remember: CLI args > config file > defaults, so we only set env vars if not already set by CLI
-    os.environ["DATASCOPE_IP"]    = os.getenv("DATASCOPE_IP", config_data.get("DATASCOPE_IP", settings.DEFAULT_IP))
-    os.environ["DATASCOPE_PORT"]  = os.getenv("DATASCOPE_PORT", config_data.get("DATASCOPE_PORT", settings.DEFAULT_PORT))
-    os.environ["DATASCOPE_DEBUG"] = os.getenv("DATASCOPE_DEBUG", config_data.get("DATASCOPE_DEBUG", settings.DEFAULT_DEBUG))
-#    os.environ["DATASCOPE_RDS_PATH"] = str(Path(config_data.get("DATASCOPE_RDS_PATH", settings.DEFAULT_RDS_PATH)).resolve())
-
-#    _, b64data = contents.split(",", 1)
-#    raw = base64.b64decode(b64data)
-
-    # Simple routing by filename extension (you can get stricter)
-#    if filename.lower().endswith(".json"):
-#        return json.loads(raw.decode("utf-8"))
-
-    # Example: allow plain text filters
-#    if filename.lower().endswith(".txt"):
-#        return {"filter_text": raw.decode("utf-8")}
-
-#    raise ValueError(f"Unsupported file type: {filename}")
-# -------------------------------------------------------------------
