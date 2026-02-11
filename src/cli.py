@@ -1,30 +1,14 @@
-import json
 import os
 from pathlib import Path
 
 import click
-import yaml
 
-from app import main
+from app import load_config, main
 from settings import DEFAULT_DEBUG, DEFAULT_IP, DEFAULT_PORT, DEFAULT_RDS_PATH
 
 
-def load_config(ctx, param, config):
-    """Load configuration from a YAML or JSON file."""
-    if config:
-        with open(config, "r") as f:
-            if config.endswith(".json"):
-                ctx.default_map = json.load(f)
-            elif config.endswith(".yaml") or config.endswith(".yml"):
-                ctx.default_map = yaml.safe_load(f)
-            else:
-                raise ValueError("Unsupported config file format. Use JSON or YAML.")
-        print(f"Parsing config data: {ctx.default_map}")
-    return config
-
-
 @click.command()
-@click.option("--config", type=click.Path(exists=True), default=".yaml", callback=load_config, expose_value=False, is_eager=True, help="Path to a JSON or YAML config file.")
+@click.option("--config", type=click.Path(exists=True), default=".yml", callback=load_config, expose_value=False, is_eager=True, help="Path to a JSON or YAML config file.")
 @click.option("--debug/--no-debug", is_flag=True, default=DEFAULT_DEBUG, help="Enable Dash debug mode.")
 @click.option("--ip", default=DEFAULT_IP, help="IP address to run the Dash app on.")
 @click.option("--port", type=int, default=DEFAULT_PORT, help="Port number for the Dash app.")
@@ -32,8 +16,6 @@ def load_config(ctx, param, config):
 @click.pass_context
 def cli(ctx, debug, ip, port, rds_path):
     """Launch the Dash app with configurable IP, port, and debug mode."""
-
-    print(f"CLI args: ip={ip}, port={port}, debug={debug}, rds_path={rds_path}")
 
     # Set env vars from config file, then update with CLI args (CLI > config > defaults)
     os.environ.update({k:str(v) for k,v in ctx.default_map.items()}) # v must be strings to be set as env vars
