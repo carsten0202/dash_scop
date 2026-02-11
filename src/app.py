@@ -76,10 +76,10 @@ def parse_config(config_data: dict) -> None:
     print(f"Parsing config data: {config_data}")
 
     # Remember: CLI args > config file > defaults, so we only set env vars if not already set by CLI
-    os.environ["DATASCOPE_IP"] = os.getenv("DATASCOPE_IP", config_data.get("DATASCOPE_IP", settings.DEFAULT_IP))
-#    os.environ["DATASCOPE_PORT"] = str(config_data.get("port", settings.DEFAULT_PORT))
-#    os.environ["DATASCOPE_DEBUG"] = str(config_data.get("debug", settings.DEFAULT_DEBUG))
-#    os.environ["DATASCOPE_RDS_PATH"] = str(Path(config_data.get("rds", settings.DEFAULT_RDS_PATH)).resolve())
+    os.environ["DATASCOPE_IP"]    = os.getenv("DATASCOPE_IP", config_data.get("DATASCOPE_IP", settings.DEFAULT_IP))
+    os.environ["DATASCOPE_PORT"]  = os.getenv("DATASCOPE_PORT", config_data.get("DATASCOPE_PORT", settings.DEFAULT_PORT))
+    os.environ["DATASCOPE_DEBUG"] = os.getenv("DATASCOPE_DEBUG", config_data.get("DATASCOPE_DEBUG", settings.DEFAULT_DEBUG))
+#    os.environ["DATASCOPE_RDS_PATH"] = str(Path(config_data.get("DATASCOPE_RDS_PATH", settings.DEFAULT_RDS_PATH)).resolve())
 
 #    _, b64data = contents.split(",", 1)
 #    raw = base64.b64decode(b64data)
