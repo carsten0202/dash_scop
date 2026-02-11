@@ -72,6 +72,8 @@ def parse_config(config_data: dict) -> None:
     contents is like: 'data:application/json;base64,AAAA...'
     returns python object (dict/list/...) you can store in dcc.Store
     """
+    print(f"Parsing config data: {config_data}")
+    
 #    _, b64data = contents.split(",", 1)
 #    raw = base64.b64decode(b64data)
 
