@@ -14,7 +14,6 @@ from layout import get_layout
 
 def load_config(ctx, param, config):
     """Load configuration from a YAML or JSON file."""
-    
     if os.path.isfile(config):
         with open(config, "r") as f:
             if config.endswith(".json"):
