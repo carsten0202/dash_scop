@@ -1,0 +1,15 @@
+# Default IP address and port
+DATASCOPE_IP: 127.0.0.1
+DATASCOPE_PORT: 8050
+
+# Enable debug mode by default
+DATASCOPE_DEBUG: True
+
+# Default RDS file path is current working directory
+DATASCOPE_RDS_PATH:  os.getcwd())
+
+# Set a default token if not provided via environment variable (not recommended for production)
+DATASCOPE_TOKEN: 532714c604bbf79f74fcb0b3be6919ec450b150dd362ae4f926c1c566d3d2f20
+
+# Default cache timeout (Measured in seconds, e.g. 12*60*60 = 12 hours)
+CACHE_DEFAULT_TIMEOUT: 12 * 60 * 60
