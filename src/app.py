@@ -49,6 +49,7 @@ def main(config_data: dict | None = None):
     token = settings.DATASCOPE_TOKEN  # 64-character hex string (256 bits)
     if token:
         app.server.wsgi_app = TokenAuthMiddleware(app.server.wsgi_app, token)  # Wrap with middleware
+        logging.info("Token authentication enabled for Dash app.")
         print(f"\n[INFO] Dash app available at http://{ip}:{port}/?token={token}\n")
     else:
         print(f"\n[INFO] Dash app available at http://{ip}:{port}/")
@@ -73,7 +74,13 @@ def parse_config(config_data: dict) -> None:
     returns python object (dict/list/...) you can store in dcc.Store
     """
     print(f"Parsing config data: {config_data}")
-    
+
+    # Remember: CLI args > config file > defaults, so we only set env vars if not already set by CLI
+    os.environ["DATASCOPE_IP"] = os.getenv("DATASCOPE_IP", config_data.get("DATASCOPE_IP", settings.DEFAULT_IP))
+#    os.environ["DATASCOPE_PORT"] = str(config_data.get("port", settings.DEFAULT_PORT))
+#    os.environ["DATASCOPE_DEBUG"] = str(config_data.get("debug", settings.DEFAULT_DEBUG))
+#    os.environ["DATASCOPE_RDS_PATH"] = str(Path(config_data.get("rds", settings.DEFAULT_RDS_PATH)).resolve())
+
 #    _, b64data = contents.split(",", 1)
 #    raw = base64.b64decode(b64data)
 
