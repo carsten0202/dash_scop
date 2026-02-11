@@ -8,7 +8,7 @@ from settings import DEFAULT_DEBUG, DEFAULT_IP, DEFAULT_PORT, DEFAULT_RDS_PATH
 
 
 @click.command()
-@click.option("--config", type=click.Path(), default=".yml", callback=load_config, expose_value=False, is_eager=True, help="Path to a JSON or YAML config file.")
+@click.option("--config", type=click.Path(), default=".yaml", callback=load_config, expose_value=False, is_eager=True, help="Path to a JSON or YAML config file.")
 @click.option("--debug/--no-debug", is_flag=True, default=DEFAULT_DEBUG, help="Enable Dash debug mode.")
 @click.option("--ip", default=DEFAULT_IP, help="IP address to run the Dash app on.")
 @click.option("--port", type=int, default=DEFAULT_PORT, help="Port number for the Dash app.")
