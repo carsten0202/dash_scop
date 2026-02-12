@@ -446,7 +446,7 @@ def register_offcanvas_callbacks(app):
         State("upload-config", "filename"),
         prevent_initial_call=True,
     )
-    def on_upload(contents, filename):
+    def on_config_upload(contents, filename):
         if not contents:
             return no_update, no_update
         try:
