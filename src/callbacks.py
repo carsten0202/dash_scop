@@ -34,6 +34,13 @@ def register_callbacks(app):
         prevent_initial_call=True,
     )
     def refresh_file_list(_clicks, _init):
+        """
+        Triggers when the 'rescan' button is clicked to refresh the list of available files in the data directory.
+        Also triggers on app initialization to populate the file list on startup.
+        
+        :param _clicks: Description
+        :param _init: Description
+        """
         base_dir = Path(os.getenv("DATASCOPE_RDS_PATH", settings.DEFAULT_RDS_PATH))
         files = scan_files(base_dir)
         # maybe include simple metadata (mtime, size)?
@@ -56,6 +63,13 @@ def register_callbacks(app):
         Input("show-subfolders", "value"),
     )
     def populate_dropdown(file_list, show_flags):
+        """
+        Populate the file dropdown options based on the scanned file list and the "show subfolders" flag.
+        If "show subfolders" is enabled, show full relative paths; otherwise, show only filenames.
+        
+        :param file_list: Description
+        :param show_flags: Description
+        """
         if not file_list:
             return []
         show_sub = "sub" in (show_flags or [])
@@ -75,6 +89,12 @@ def register_callbacks(app):
         prevent_initial_call=True,
     )
     def handle_file_selection(rel_value):
+        """
+        Triggered when a file is selected from the dropdown. Loads the selected Seurat RDS file, extracts the filter
+        schema from its metadata, and updates the dataset key and UI state accordingly.
+        
+        :param rel_value: Description
+        """
         if not rel_value:
             return no_update  # If no file selected, do nothing
         str_path = Path(os.getenv("DATASCOPE_RDS_PATH", settings.DEFAULT_RDS_PATH))
@@ -157,6 +177,13 @@ def register_callbacks(app):
         State("gene-selector", "value"),
     )
     def update_gene_selection(dataset_key, selected_genes):
+        """
+        Update the gene selector drop-down based on the selected dataset. Validates the currently selected genes
+        against the new options and resets selection if they are no longer valid.
+        
+        :param dataset_key: Description
+        :param selected_genes: Description
+        """
         try:
             gene_matrix_df = cache.get(dataset_key)["gene_counts"]  # Get gene count data from seurat data in cache
             gene_options = [{"label": gene, "value": gene} for gene in gene_matrix_df.index]
@@ -241,6 +268,9 @@ def register_callbacks(app):
         # TODO: The wrapping for plots is partially broken for vertical resizing of the window.
         # TODO: Heatmap brug Z-scores på gener
         # TODO: Mulighed for at uploade gen-lister
+        #   Vi skal update Input("gene-selector", "value") med værdier fra filen, og så vil plot-opdateringen trigge
+        #   automatisk. Vi skal bare parse filen og få de rigtige gen-navne ud.
+        #   Det kan gøres, det skal faktisk gøres, i callback til upload-komponenten.
         # TODO: Fix the download of plots (currently downloads last one, not all)
 
         seurat_data = cache.get(dataset_key)  # Get seurat data from cache
