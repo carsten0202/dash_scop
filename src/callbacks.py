@@ -9,6 +9,7 @@ from pathlib import Path
 
 import dash_bootstrap_components as dbc
 import plotly.express as px
+import yaml
 from dash import ALL, Input, Output, State, ctx, dcc, html, no_update
 from flask_caching import Cache
 
@@ -463,6 +464,14 @@ def register_offcanvas_callbacks(app):
         except Exception as e:
             return no_update, f"Upload failed: {e}"
 
+    @app.callback(
+        Output("gene-selector", "value"),
+        Input("config-store", "data"),
+    )
+    def temp(config_data):
+        if config_data and "Genes" in config_data:
+            return config_data["Genes"]
+        return []
 
 # -------------------------------------------------------------------
 # Helper to generate a boxplot figure
@@ -551,13 +560,18 @@ def parse_upload(contents: str, filename: str):
     _, b64data = contents.split(",", 1)
     raw = base64.b64decode(b64data)
 
-    # Simple routing by filename extension (you can get stricter)
+    # JSON is nice for simple key-value configs, and it's also widely used and supported.
     if filename.lower().endswith(".json"):
         return json.loads(raw.decode("utf-8"))
 
-    # Example: allow plain text filters
-    if filename.lower().endswith(".txt"):
-        return {"filter_text": raw.decode("utf-8")}
+    # YAML is nice because it can represent complex data structures, and it's also human-readable.
+    if filename.lower().endswith((".yaml", ".yml")):
+        return yaml.safe_load(raw.decode("utf-8"))
 
-    raise ValueError(f"Unsupported file type: {filename}")
+    # If not YAML or JSON, allow plain text filters for the 'Genes' slot
+    if filename.lower().endswith(".txt"):
+        return {"Genes": raw.decode("utf-8")}
+
+#    raise ValueError(f"Unsupported file type: {filename}")
+    raise ValueError(f"Config: {yaml.safe_load(raw.decode('utf-8'))}")
 # -------------------------------------------------------------------
