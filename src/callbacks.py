@@ -447,6 +447,14 @@ def register_offcanvas_callbacks(app):
         prevent_initial_call=True,
     )
     def on_config_upload(contents, filename):
+        """
+        Triggers when a config or filter file is selected in dialog. Parses the uploaded file and stores its content in
+        the dcc.Store component for use in other callbacks. Also updates the upload status message based on success or
+        failure of the upload.
+        
+        :param contents: Description
+        :param filename: Description
+        """
         if not contents:
             return no_update, no_update
         try:
@@ -531,6 +539,7 @@ def scan_files(dir_path: Path) -> list[str]:
 
 
 # -------------------------------------------------------------------
+
 
 # -------------------------------------------------------------------
 # Helper to parse uploaded config/filter files
