@@ -172,32 +172,6 @@ def register_callbacks(app):
         return selection_id
 
     @app.callback(
-        Output("gene-selector", "options"),
-        Output("gene-selector", "value"),
-        Input("dataset-key", "data"),
-        State("gene-selector", "value"),
-    )
-    def update_gene_selection(dataset_key, selected_genes):
-        """
-        Update the gene selector drop-down based on the selected dataset. Validates the currently selected genes
-        against the new options and resets selection if they are no longer valid.
-        
-        :param dataset_key: Description
-        :param selected_genes: Description
-        """
-        try:
-            gene_matrix_df = cache.get(dataset_key)["gene_counts"]  # Get gene count data from seurat data in cache
-            gene_options = [{"label": gene, "value": gene} for gene in gene_matrix_df.index]
-        except TypeError:
-            return no_update, no_update
-
-        # Validate selected genes columns against gene_options (which may change if user re-loads dataset)
-        if selected_genes not in gene_options:
-            selected_genes = []
-
-        return gene_options, selected_genes
-
-    @app.callback(
         Output("open-left-offcanvas", "disabled"),
         Input("plot-selector", "value"),
     )
@@ -406,10 +380,43 @@ def register_callbacks(app):
         encoded_svg = svg_buffer.getvalue()
         return dcc.send_bytes(encoded_svg, filename="plot.svg")  # type: ignore
 
-    register_offcanvas_callbacks(app)
+    register_offcanvas_callbacks(app, cache)
 
 
-def register_offcanvas_callbacks(app):
+def register_offcanvas_callbacks(app, cache):
+    """Stuff relating to the offcanvas drawers for filters and config upload."""
+    @app.callback(
+        Output("gene-selector", "options"),
+        Output("gene-selector", "value"),
+        Input("dataset-key", "data"),
+        State("gene-selector", "value"),
+        Input("config-store", "data"),
+    )
+    def update_gene_selection(dataset_key, selected_genes, config_data):
+        """
+        Update the gene selector drop-down based on the selected dataset. Validates the currently selected genes
+        against the new options and resets selection if they are no longer valid.
+        
+        :param dataset_key: Description
+        :param selected_genes: Description
+        """
+        try:
+            gene_matrix_df = cache.get(dataset_key)["gene_counts"]  # Get gene count data from seurat data in cache
+            gene_options = [{"label": gene, "value": gene} for gene in gene_matrix_df.index]
+        except TypeError:
+            return no_update, no_update
+
+        if config_data and "Genes" in config_data:
+            config_genes = [g.strip() for g in config_data["Genes"].split(",")] # Get gene list from uploaded config (comma-separated string)
+            # TODO: Need to strip or validate gene names against gene_options....
+            selected_genes = config_genes
+
+       # Validate selected genes columns against gene_options (which may change if user re-loads dataset)
+        if selected_genes not in gene_options:
+            selected_genes = []
+
+        return gene_options, selected_genes
+
     @app.callback(
         Output({"type": "color-control", "name": ALL}, "value"),
         Output("color-column-name", "data"),
@@ -464,14 +471,6 @@ def register_offcanvas_callbacks(app):
         except Exception as e:
             return no_update, f"Upload failed: {e}"
 
-    @app.callback(
-        Output("gene-selector", "value"),
-        Input("config-store", "data"),
-    )
-    def temp(config_data):
-        if config_data and "Genes" in config_data:
-            return config_data["Genes"]
-        return []
 
 # -------------------------------------------------------------------
 # Helper to generate a boxplot figure
