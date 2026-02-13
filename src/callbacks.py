@@ -248,6 +248,8 @@ def register_callbacks(app):
         #   Det kan gøres, det skal faktisk gøres, i callback til upload-komponenten.
         # TODO: Fix the download of plots (currently downloads last one, not all)
 
+        print(f"Selected genes: {selected_genes}")
+
         seurat_data = cache.get(dataset_key)  # Get seurat data from cache
         cell_index = cache.get(cell_index_key)  # Get cell index data from cache
         if seurat_data is None or cell_index is None:
@@ -406,14 +408,15 @@ def register_offcanvas_callbacks(app, cache):
         except TypeError:
             return no_update, no_update
 
+        # This is a bit hacky, but it allows us to set the gene selection based on an uploaded config file.
+        # Could be added to the plot update callback, but that one is already bloated. This should work
         if config_data and "Genes" in config_data:
-            config_genes = [g.strip() for g in config_data["Genes"].split(",")] # Get gene list from uploaded config (comma-separated string)
-            # TODO: Need to strip or validate gene names against gene_options....
+            config_genes = config_data["Genes"] # Get gene list from uploaded config
             selected_genes = config_genes
 
-       # Validate selected genes columns against gene_options (which may change if user re-loads dataset)
-        if selected_genes not in gene_options:
-            selected_genes = []
+        # Validate selected genes columns against gene_options (which may change if user re-loads dataset)
+        set_gene_options = set([opt["value"] for opt in gene_options])  # O(1) lookups
+        selected_genes = [x for x in selected_genes if x in set_gene_options]
 
         return gene_options, selected_genes
 
