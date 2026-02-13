@@ -48,15 +48,9 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
             axis=1,
         )
 
-        print(metadata_df)
-        print(metadata_df.dtypes)
-
         # DataFrame suitable for boxplots & violon plots
         gene_matrix_df = extracted[1]  # Gene expression matrix as pandas DataFrame
         boxplot_df = pd.concat([metadata_df, gene_matrix_df.transpose()], axis=1)
-
-        print(gene_matrix_df.index)
-        print(gene_matrix_df.columns)
 
         # DataFrame for Heatmaps
         heatmap_df = gene_matrix_df.apply(zscore, axis=1, result_type="broadcast")
