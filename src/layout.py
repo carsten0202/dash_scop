@@ -130,6 +130,7 @@ def build_left(config_data):
     html_div = html.Div(
         id="gene-selector-container",
         children=[
+            dcc.Store(id="config-store"),  # parsed config lives here
             html.Label("Select gene(s):", htmlFor="gene-selector"),
             dcc.Dropdown(
                 id="gene-selector",
@@ -144,7 +145,6 @@ def build_left(config_data):
                 multiple=False,  # single file
             ),
             html.Div(id="upload-status", style={"marginTop": "0.75rem"}),
-            dcc.Store(id="config-store"),  # parsed config lives here
         ],
     )
     return html_div
