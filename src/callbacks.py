@@ -226,6 +226,50 @@ def register_callbacks(app):
         )
         return [headline] + [make_filter_component(f) for f in schema]
 
+
+    @app.callback(
+        Output("download-config", "data"),
+        Input("save-config-btn", "n_clicks"),
+        State("gene-selector", "value"),
+        State({"type": "filter-control", "name": ALL}, "value"),
+        State({"type": "filter-control", "name": ALL}, "id"),
+        State("color-column-name", "data"),
+        State("shape-column-name", "data"),
+        State("file-dropdown", "value"),
+        prevent_initial_call=True,
+    )
+    def save_config_yaml(n_clicks, selected_genes, filter_values, filter_ids, color_col, shape_col, rel_dataset):
+        if not n_clicks:
+            return no_update
+
+        # Turn the pattern-matching filter controls into a dict: {column_name: value}
+        filters = {}
+        for v, id_ in zip(filter_values or [], filter_ids or [], strict=False):
+            name = id_.get("name")
+            if name is None:
+                continue
+            # store only "active" filters (optional; remove this if you want everything)
+            if v not in (None, [], ""):
+                filters[name] = v
+
+        payload = {
+            "version": 1,
+            "saved_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "dataset": rel_dataset,          # relative path from dropdown (nice to keep)
+            "Genes": selected_genes or [],   # matches what your upload logic expects
+            "Filters": filters,
+            "Color": color_col,
+            "Shape": shape_col,
+        }
+
+        yaml_text = yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
+
+        # Friendly filename
+        base = Path(rel_dataset).stem if rel_dataset else "config"
+        filename = f"{base}.filters.yaml"
+
+        return dcc.send_string(yaml_text, filename=filename)
+
     @app.callback(
         Output("plot-container", "children"),
         Output("error-message", "children"),
