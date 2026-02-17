@@ -11,6 +11,7 @@ import dash_bootstrap_components as dbc
 import plotly.express as px
 import yaml
 from dash import ALL, Input, Output, State, ctx, dcc, html, no_update
+from dash.dcc.express import send_string
 from flask_caching import Cache
 
 import settings
@@ -268,7 +269,7 @@ def register_callbacks(app):
         base = Path(rel_dataset).stem if rel_dataset else "config"
         filename = f"{base}.filters.yaml"
 
-        return dcc.send_string(yaml_text, filename=filename)
+        return send_string(yaml_text, filename=filename)
 
     @app.callback(
         Output("plot-container", "children"),
@@ -291,8 +292,6 @@ def register_callbacks(app):
         #   automatisk. Vi skal bare parse filen og få de rigtige gen-navne ud.
         #   Det kan gøres, det skal faktisk gøres, i callback til upload-komponenten.
         # TODO: Fix the download of plots (currently downloads last one, not all)
-
-        print(f"Selected genes: {selected_genes}")
 
         seurat_data = cache.get(dataset_key)  # Get seurat data from cache
         cell_index = cache.get(cell_index_key)  # Get cell index data from cache
