@@ -145,7 +145,12 @@ def build_left(config_data):
                 children=html.Button("Upload config / filter file"),
                 multiple=False,  # single file
             ),
-            # Save button
+            dbc.Tooltip(
+                "Upload a YAML/JSON config or a plain gene list (.txt). "
+                "This will replace the current filters and selected genes.",
+                target="upload-config-btn",
+                placement="right",
+            ),
             html.Button("Save config / filters (YAML)", id="save-config-btn", n_clicks=0),
             html.Div(id="upload-status", style={"marginTop": "0.75rem"}),
             # layout.py (inside build_left)
