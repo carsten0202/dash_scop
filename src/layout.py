@@ -145,19 +145,10 @@ def build_left(config_data):
                 children=html.Button("Upload config / filter file"),
                 multiple=False,  # single file
             ),
+            # Save button
+            html.Button("Save config / filters (YAML)", id="save-config-btn", n_clicks=0),
             html.Div(id="upload-status", style={"marginTop": "0.75rem"}),
             # layout.py (inside build_left)
-
-            dcc.Upload(
-                id="upload-config",
-                children=html.Button("Upload config / filter file"),
-                multiple=False,
-            ),
-
-            # NEW: save button
-            html.Button("Save config / filters (YAML)", id="save-config-btn", n_clicks=0),
-
-            html.Div(id="upload-status", style={"marginTop": "0.75rem"}),
 
         ],
     )
