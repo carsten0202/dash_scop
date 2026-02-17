@@ -131,6 +131,7 @@ def build_left(config_data):
         id="gene-selector-container",
         children=[
             dcc.Store(id="config-store"),  # parsed config lives here
+            dcc.Download(id="download-config"), # download target
             html.Label("Select gene(s):", htmlFor="gene-selector"),
             dcc.Dropdown(
                 id="gene-selector",
@@ -145,6 +146,19 @@ def build_left(config_data):
                 multiple=False,  # single file
             ),
             html.Div(id="upload-status", style={"marginTop": "0.75rem"}),
+            # layout.py (inside build_left)
+
+            dcc.Upload(
+                id="upload-config",
+                children=html.Button("Upload config / filter file"),
+                multiple=False,
+            ),
+
+            # NEW: save button
+            html.Button("Save config / filters (YAML)", id="save-config-btn", n_clicks=0),
+
+            html.Div(id="upload-status", style={"marginTop": "0.75rem"}),
+
         ],
     )
     return html_div
