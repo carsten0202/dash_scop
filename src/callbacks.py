@@ -440,11 +440,6 @@ def register_offcanvas_callbacks(app, cache):
         except TypeError:
             return no_update
 
-#        # Set the barcode/cell selection based on an uploaded config file.
-#        if config_data and  in config_data:
-#            config_genes = config_data["Genes"] # Get gene list from uploaded config
-#            selected_cells = config_genes
-
         # Validate color/shape columns against schema (Schema may be changed if user re-loaded dataset)
         schema_names = [s["name"] for s in schema]
         if color_column not in schema_names:
