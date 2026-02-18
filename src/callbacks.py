@@ -132,45 +132,6 @@ def register_callbacks(app):
         except Exception as e:
             return dataset_key, {}, True, dbc.Alert(f"Failed to load: {e}", color="danger", dismissable=True)
 
-    @app.callback(
-        Output("cell-index-key", "data"),
-        Input({"type": "filter-control", "name": ALL}, "value"),
-        State({"type": "filter-control", "name": ALL}, "id"),
-        Input("color-column-name", "data"),
-        Input("shape-column-name", "data"),
-        Input("dataset-key", "data"),
-        Input("filter-schema-store", "data"),
-    )
-    def update_barcode_selection(filters_cells, filters_ids, color_column, shape_column, dataset_key, schema):
-        try:
-            metadata_df = cache.get(dataset_key)["metadata"]  # Get metadata data from seurat data in the cache.
-            selected_cells = metadata_df.index  # Default to all cell types
-        except TypeError:
-            return no_update
-
-        # Validate color/shape columns against schema (Schema may be changed if user re-loaded dataset)
-        schema_names = [s["name"] for s in schema]
-        if color_column not in schema_names:
-            color_column = None
-        if shape_column not in schema_names:
-            shape_column = None
-
-        for f, id_ in zip(filters_cells, filters_ids, strict=True):
-            selected_indices = metadata_df.index[metadata_df[id_["name"]].isin(f)]
-            if selected_indices.size:
-                selected_cells = selected_cells.intersection(selected_indices)
-        color_barcodes = metadata_df.loc[selected_cells, color_column] if color_column else None  # Series or None
-        shape_barcodes = metadata_df.loc[selected_cells, shape_column] if shape_column else None  # Series or None
-
-        selection_id = str(uuid.uuid4())  # generate a random ID for the selection we're about to store
-        cache.set(
-            selection_id, {"index": selected_cells, "color": color_barcodes, "shape": shape_barcodes}, timeout=None
-        )  # store it in the cache, timeout=None or 0 => use default (=> no expiry)
-        # TODO: I'm guessing we may have a memory leak here if the user keeps changing selections a lot?
-        # Every time we create a new selection_id we store it in the cache, but never delete old ones.
-        # I'm currently wiping the cache every time the user loads a new dataset. That helps.
-
-        return selection_id
 
     @app.callback(
         Output("open-left-offcanvas", "disabled"),
@@ -464,6 +425,52 @@ def register_offcanvas_callbacks(app, cache):
         return gene_options, selected_genes
 
     @app.callback(
+        Output("cell-index-key", "data"),
+        Input({"type": "filter-control", "name": ALL}, "value"),
+        State({"type": "filter-control", "name": ALL}, "id"),
+        Input("color-column-name", "data"),
+        Input("shape-column-name", "data"),
+        Input("dataset-key", "data"),
+        Input("filter-schema-store", "data"),
+        Input("config-store", "data"),
+    )
+    def update_barcode_selection(filters_cells, filters_ids, color_column, shape_column, dataset_key, schema, config_data):
+        try:
+            metadata_df = cache.get(dataset_key)["metadata"]  # Get metadata data from seurat data in the cache.
+            selected_cells = metadata_df.index  # Default to all cell types
+        except TypeError:
+            return no_update
+
+#        # Set the barcode/cell selection based on an uploaded config file.
+#        if config_data and  in config_data:
+#            config_genes = config_data["Genes"] # Get gene list from uploaded config
+#            selected_cells = config_genes
+
+        # Validate color/shape columns against schema (Schema may be changed if user re-loaded dataset)
+        schema_names = [s["name"] for s in schema]
+        if color_column not in schema_names:
+            color_column = None
+        if shape_column not in schema_names:
+            shape_column = None
+
+        for f, id_ in zip(filters_cells, filters_ids, strict=True):
+            selected_indices = metadata_df.index[metadata_df[id_["name"]].isin(f)]
+            if selected_indices.size:
+                selected_cells = selected_cells.intersection(selected_indices)
+        color_barcodes = metadata_df.loc[selected_cells, color_column] if color_column else None  # Series or None
+        shape_barcodes = metadata_df.loc[selected_cells, shape_column] if shape_column else None  # Series or None
+
+        selection_id = str(uuid.uuid4())  # generate a random ID for the selection we're about to store
+        cache.set(
+            selection_id, {"index": selected_cells, "color": color_barcodes, "shape": shape_barcodes}, timeout=None
+        )  # store it in the cache, timeout=None or 0 => use default (=> no expiry)
+        # TODO: I'm guessing we may have a memory leak here if the user keeps changing selections a lot?
+        # Every time we create a new selection_id we store it in the cache, but never delete old ones.
+        # I'm currently wiping the cache every time the user loads a new dataset. That helps.
+
+        return selection_id
+
+    @app.callback(
         Output({"type": "color-control", "name": ALL}, "value"),
         Output("color-column-name", "data"),
         Input({"type": "color-control", "name": ALL}, "value"),
@@ -516,6 +523,7 @@ def register_offcanvas_callbacks(app, cache):
             return data, f"Loaded: {filename}"
         except Exception as e:
             return no_update, f"Upload failed: {e}"
+
 
 
 # -------------------------------------------------------------------
