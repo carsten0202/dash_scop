@@ -431,9 +431,8 @@ def register_offcanvas_callbacks(app, cache):
         Input("shape-column-name", "data"),
         Input("dataset-key", "data"),
         Input("filter-schema-store", "data"),
-        Input("config-store", "data"),
     )
-    def update_barcode_selection(filters_cells, filters_ids, color_column, shape_column, dataset_key, schema, config_data):
+    def update_barcode_selection(filters_cells, filters_ids, color_column, shape_column, dataset_key, schema):
         try:
             metadata_df = cache.get(dataset_key)["metadata"]  # Get metadata data from seurat data in the cache.
             selected_cells = metadata_df.index  # Default to all cell types
