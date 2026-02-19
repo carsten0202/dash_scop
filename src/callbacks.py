@@ -391,48 +391,6 @@ def register_callbacks(app):
 def register_offcanvas_callbacks(app, cache):
     """Stuff relating to the offcanvas drawers for filters and config upload."""
 
-
-    @app.callback(
-        Output({"type": "shape-control", "name": ALL}, "value"),
-        Output("shape-column-name", "data"),
-        Input({"type": "shape-control", "name": ALL}, "value"),
-        Input("config-store", "data"),
-        State({"type": "shape-control", "name": ALL}, "id"),
-        State("filter-schema-store", "data"),
-        prevent_initial_call=True,
-    )
-    def shape_selection(values, config_data, ids, schema):
-        trigger = ctx.triggered_id
-
-        # Helper: clear all
-        def cleared():
-            return ([[] for _ in (ids or [])], None)
-
-        # 1) If triggered by config upload: set from config
-        if trigger == "config-store":
-            if not config_data:
-                return no_update, no_update
-
-            cfg_shape = config_data.get("Shape", None)
-            schema_names = {s["name"] for s in (schema or [])}
-            if cfg_shape not in schema_names:
-                return cleared()
-
-            new_vals = [[id_["name"]] if id_["name"] == cfg_shape else [] for id_ in (ids or [])]
-            return new_vals, cfg_shape
-
-        # 2) Otherwise triggered by user interaction: enforce exclusivity
-        selected = [id_["name"] for v, id_ in zip(values or [], ids or [], strict=False) if v]
-
-        if not selected:
-            return cleared()
-
-        chosen = selected[0]  # keep first selected
-        single = [[id_["name"]] if id_["name"] == chosen else [] for id_ in (ids or [])]
-        return single, chosen
-
-
-
     @app.callback(
         Output("gene-selector", "options"),
         Output("gene-selector", "value"),
@@ -510,20 +468,79 @@ def register_offcanvas_callbacks(app, cache):
         Output({"type": "color-control", "name": ALL}, "value"),
         Output("color-column-name", "data"),
         Input({"type": "color-control", "name": ALL}, "value"),
+        Input("config-store", "data"),
         State({"type": "color-control", "name": ALL}, "id"),
+        State("filter-schema-store", "data"),
         prevent_initial_call=True,
     )
-    def exclusive_color_selection(color_button, color_ids):
-        # Find which names are currently selected
-        selected = [id_["name"] for v, id_ in zip(color_button or [], color_ids or [], strict=False) if v]
+    def color_selection(values, config_data, ids, schema):
+        trigger = ctx.triggered_id
+
+        # Helper: clear all
+        def cleared():
+            return ([[] for _ in (ids or [])], None)
+
+        # 1) If triggered by config upload: set from config
+        if trigger == "config-store":
+            if not config_data:
+                return no_update, no_update
+
+            cfg_color = config_data.get("Color", None)
+            schema_names = {s["name"] for s in (schema or [])}
+            if cfg_color not in schema_names:
+                return cleared()
+
+            new_vals = [[id_["name"]] if id_["name"] == cfg_color else [] for id_ in (ids or [])]
+            return new_vals, cfg_color
+
+        # 2) Otherwise triggered by user interaction: enforce exclusivity
+        selected = [id_["name"] for v, id_ in zip(values or [], ids or [], strict=False) if v]
 
         if not selected:
-            return [[] for _ in (color_button or [])], None
+            return cleared()
 
-        # Keep the first selected (enforces exclusivity even if multiple were set programmatically)
-        chosen = selected[0]
-        single_select = [[id_["name"]] if id_["name"] == chosen else [] for id_ in (color_ids or [])]
-        return single_select, chosen
+        chosen = selected[0]  # keep first selected
+        single = [[id_["name"]] if id_["name"] == chosen else [] for id_ in (ids or [])]
+        return single, chosen
+
+    @app.callback(
+        Output({"type": "shape-control", "name": ALL}, "value"),
+        Output("shape-column-name", "data"),
+        Input({"type": "shape-control", "name": ALL}, "value"),
+        Input("config-store", "data"),
+        State({"type": "shape-control", "name": ALL}, "id"),
+        State("filter-schema-store", "data"),
+        prevent_initial_call=True,
+    )
+    def shape_selection(values, config_data, ids, schema):
+        trigger = ctx.triggered_id
+
+        # Helper: clear all
+        def cleared():
+            return ([[] for _ in (ids or [])], None)
+
+        # 1) If triggered by config upload: set from config
+        if trigger == "config-store":
+            if not config_data:
+                return no_update, no_update
+
+            cfg_shape = config_data.get("Shape", None)
+            schema_names = {s["name"] for s in (schema or [])}
+            if cfg_shape not in schema_names:
+                return cleared()
+
+            new_vals = [[id_["name"]] if id_["name"] == cfg_shape else [] for id_ in (ids or [])]
+            return new_vals, cfg_shape
+
+        # 2) Otherwise triggered by user interaction: enforce exclusivity
+        selected = [id_["name"] for v, id_ in zip(values or [], ids or [], strict=False) if v]
+
+        if not selected:
+            return cleared()
+
+        chosen = selected[0]  # keep first selected
+        single = [[id_["name"]] if id_["name"] == chosen else [] for id_ in (ids or [])]
+        return single, chosen
 
     @app.callback(
         Output("config-store", "data"),
@@ -549,3 +566,26 @@ def register_offcanvas_callbacks(app, cache):
         except Exception as e:
             return no_update, f"Upload failed: {e}"
 
+    @app.callback(
+        Output({"type": "filter-control", "name": ALL}, "value"),
+        Input("config-store", "data"),
+        State({"type": "filter-control", "name": ALL}, "id"),
+        prevent_initial_call=True,
+    )
+    def apply_uploaded_filters(config_data, filter_ids):
+        if not config_data:
+            return no_update
+
+        cfg_filters = config_data.get("Filters", {}) or {}
+
+        new_vals = []
+        for id_ in (filter_ids or []):
+            name = id_.get("name")
+            v = cfg_filters.get(name, [])
+            if v is None:
+                v = []
+            elif isinstance(v, (str, int, float)):
+                v = [v]
+            new_vals.append(v)
+
+        return new_vals
