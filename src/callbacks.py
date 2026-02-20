@@ -103,8 +103,8 @@ def register_callbacks(app):
         if not str(abs_path).startswith(str(str_path)):  # prevent path traversal
             raise ValueError(f"Invalid path selection - {abs_path}")
         dataset_key = str(uuid.uuid4())  # generate a random ID for the dataset we're about to load
-        # TODO: Would be nice with actual caching here, so that we do not re-load if the user re-selects a dataset...
-        # And/or clering the cache so we don't use too much memory over time.
+        # TODO: Would be nice with persistent caching here, so that we do not re-load if the user re-selects a dataset...
+        # And/or clearing the cache so we don't use too much memory over time.
         try:
             st = abs_path.stat()
             data_dfs = load_seurat_rds(abs_path)  # Don't send this object to the browser
@@ -246,12 +246,8 @@ def register_callbacks(app):
         plot_figures = []
 
         # TODO: The wrapping for plots is partially broken for vertical resizing of the window.
-        # TODO: Heatmap brug Z-scores på gener
-        # TODO: Mulighed for at uploade gen-lister
-        #   Vi skal update Input("gene-selector", "value") med værdier fra filen, og så vil plot-opdateringen trigge
-        #   automatisk. Vi skal bare parse filen og få de rigtige gen-navne ud.
-        #   Det kan gøres, det skal faktisk gøres, i callback til upload-komponenten.
         # TODO: Fix the download of plots (currently downloads last one, not all)
+        # TODO: Review the current YAML / JSON Scheme for config files. Could be more logical.
 
         seurat_data = cache.get(dataset_key)  # Get seurat data from cache
         cell_index = cache.get(cell_index_key)  # Get cell index data from cache
