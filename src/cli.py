@@ -17,7 +17,6 @@ from settings import DEFAULT_DEBUG, DEFAULT_IP, DEFAULT_PORT, DEFAULT_RDS_PATH
 #   sync. Overall, I think it would be cleaner to standardize on one approach, but it may require some refactoring to
 #   achieve that.
 #   PS: From 'Currently...' is AI comment, but may have some truth to it, so kept it around.
-#   PPS: Code will currently fail if ctx.default_map is None, which it will be if no config file is provided.
 
 @click.command()
 @click.option("--config", type=click.Path(), default=".yaml", callback=load_config, expose_value=False, is_eager=True, help="Path to a JSON or YAML config file.")
@@ -30,7 +29,8 @@ def cli(ctx, debug, ip, port, rds_path):
     """Launch the Dash app with configurable IP, port, and debug mode."""
 
     # Set env vars from config file, then update with CLI args (CLI > config > defaults)
-    os.environ.update({k:str(v) for k,v in ctx.default_map.items() if ctx.default_map}) # v must be strings to be set as env vars
+    if ctx.default_map is not None:
+        os.environ.update({k:str(v) for k,v in ctx.default_map.items()}) # v must be strings to be set as env vars
     os.environ["DATASCOPE_IP"] = ip
     os.environ["DATASCOPE_PORT"] = str(port)
     os.environ["DATASCOPE_DEBUG"] = str(debug)
