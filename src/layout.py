@@ -21,6 +21,12 @@ def get_layout(config_data):
                 dbc.Col(
                     [
                         dbc.Button("Rescan", id="rescan", n_clicks=0),
+                        dbc.Checklist(
+                            options=[{"label": "Subfolders", "value": "sub"}],
+                            value=["sub"],
+                            id="show-subfolders",
+                            switch=True,
+                        ),
                         dcc.Dropdown(
                             id="file-dropdown",
                             options=[],  # filled by callback
@@ -29,12 +35,28 @@ def get_layout(config_data):
                             clearable=False,
                             style={"flex": "1"},
                         ),
-                        dbc.Checklist(
-                            options=[{"label": "Show subfolders", "value": "sub"}],
-                            value=["sub"],
-                            id="show-subfolders",
-                            switch=True,
+
+                        dcc.Store(id="config-store"),  # parsed config lives here
+                        dcc.Download(id="download-config"), # download target
+
+                        dcc.Upload(
+                            id="upload-config",
+                            children=html.Button("Upload filters", id="upload-config-btn", n_clicks=0),
+                            multiple=False,  # single file
                         ),
+                        html.Button("Save filters", id="save-config-btn", n_clicks=0),
+                        dbc.Tooltip(
+                            "Upload a YAML/JSON config or a plain gene list (.txt). "
+                            "This will replace the current filters and selected genes.",
+                            target="upload-config-btn",
+                            placement="right",
+                        ),
+                        dbc.Tooltip(
+                            "Export YAML file with current filter selection.",
+                            target="save-config-btn",
+                            placement="right",
+                        ),
+
                     ],
                     style={
                         "display": "flex",
@@ -130,8 +152,6 @@ def build_left(config_data):
     html_div = html.Div(
         id="gene-selector-container",
         children=[
-            dcc.Store(id="config-store"),  # parsed config lives here
-            dcc.Download(id="download-config"), # download target
             html.Label("Select gene(s):", htmlFor="gene-selector"),
             dcc.Dropdown(
                 id="gene-selector",
@@ -140,18 +160,6 @@ def build_left(config_data):
                 placeholder="Select genes to display...",
                 value=config_data.get("genes", []),
             ),
-            dcc.Upload(
-                id="upload-config",
-                children=html.Button("Upload config / filter file"),
-                multiple=False,  # single file
-            ),
-            dbc.Tooltip(
-                "Upload a YAML/JSON config or a plain gene list (.txt). "
-                "This will replace the current filters and selected genes.",
-                target="upload-config-btn",
-                placement="right",
-            ),
-            html.Button("Save config / filters (YAML)", id="save-config-btn", n_clicks=0),
             html.Div(id="upload-status", style={"marginTop": "0.75rem"}),
             # layout.py (inside build_left)
 
