@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 
-def find_free_port(start=8000, end=9000):
+def find_free_port(start=8800, end=9000):
     """Find a free port in the given range."""
     for port in range(start, end):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -62,7 +62,7 @@ def main():
         ip,
         "--port",
         str(port),
-        "--rds",
+        "--rds-path",
         container_data_path,
         "--no-debug",
     ]
