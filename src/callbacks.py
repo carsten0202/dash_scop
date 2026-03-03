@@ -379,7 +379,9 @@ def register_callbacks(app):
             plot_bgcolor="rgba(0,0,0,0)",
         )
 
-        title = (fig.layout.title.text or "plot").strip().replace(" ", "_")
+        layout_dict = fig.to_dict().get("layout", {})
+        title_text = layout_dict.get("title", {}).get("text", "plot")
+        title = str(title_text).strip().replace(" ", "_")
         ts = datetime.now().strftime("%Y%m%d-%H%M%S")
         filename = f"{title}_{ts}.svg"
 
