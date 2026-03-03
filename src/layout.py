@@ -14,6 +14,7 @@ def get_layout(config_data):
         dcc.Store(id="file-list"),  # holds list of files
         dcc.Store(id="filter-schema-store", data=[]),  # holds the filter schema, [] for none
         dcc.Store(id="shape-column-name"),  # holds column name for the current shape selection
+        dcc.Store(id="config-store"),  # parsed config lives here
         html.Div(
             id="file-controls",
             children=[
@@ -36,7 +37,6 @@ def get_layout(config_data):
                             style={"flex": "1"},
                         ),
 
-                        dcc.Store(id="config-store"),  # parsed config lives here
                         dcc.Download(id="download-config"), # download target
 
                         dcc.Upload(
@@ -83,16 +83,11 @@ def get_layout(config_data):
             clearable=False,  # Should never be empty. You must select one, or let the default ride.
             disabled=True,  # Enable after file load
         ),
-        # Download button and component
+        # Download button and filter components
         dbc.Row(
             [
                 dbc.Col(dbc.Button("Gene Filter Panel", id="open-left-offcanvas", n_clicks=0, disabled=True), width=2),
-                dbc.Col(
-                    dbc.Button(
-                        "Download Plot as SVG", id="download-btn", n_clicks=0, disabled=True, style={"display": "none"}
-                    ),
-                    width=2,
-                ),
+                dbc.Col(dbc.Button("Export Plot SVG", id="download-svg-btn", n_clicks=0), width=2,),
                 dbc.Col(dbc.Button("Barcode Filter Panel", id="open-right-offcanvas", n_clicks=0), width=2),
             ],
             justify="center",
