@@ -1,12 +1,13 @@
-import io
 import logging
 import os
 import time
 import uuid
+from datetime import datetime
 from pathlib import Path
 
 import dash_bootstrap_components as dbc
 import plotly.express as px
+import plotly.io as pio
 import yaml
 from dash import ALL, Input, Output, State, ctx, dcc, html, no_update
 from dash.dcc.express import send_string
@@ -363,23 +364,27 @@ def register_callbacks(app):
 
     @app.callback(
         Output("download-plot", "data"),
-        Input("download-btn", "n_clicks"),
+        Input("download-svg-btn", "n_clicks"),
         prevent_initial_call=True,
     )
     def download_plot(n_clicks):
-        """Saves the last generated plot as an SVG file and provides it for download."""
         global last_figure
-
         if last_figure is None:
-            return None  # No figure to download
+            return None
 
-        # Save figure as SVG
-        svg_buffer = io.BytesIO()
-        last_figure.write_image(svg_buffer, format="svg")
+        fig = last_figure
+        fig.update_layout(
+            template=None,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+        )
 
-        # Encode SVG content as a downloadable file
-        encoded_svg = svg_buffer.getvalue()
-        return dcc.send_bytes(encoded_svg, filename="plot.svg")  # type: ignore
+        title = (fig.layout.title.text or "plot").strip().replace(" ", "_")
+        ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+        filename = f"{title}_{ts}.svg"
+
+        svg_bytes = pio.to_image(fig, format="svg")
+        return dcc.send_bytes(svg_bytes, filename=filename)
 
     register_offcanvas_callbacks(app, cache)
 
