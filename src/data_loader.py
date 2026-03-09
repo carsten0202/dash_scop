@@ -30,6 +30,31 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
             return(list(metadata = metadata, gene_matrix = gene_matrix, umap = umap))
         }
         """)
+
+        """
+        # Join layers to convert to SCE
+        seurat_obj <- SeuratObject::JoinLayers(seurat_obj, assay = "RNA")
+        sce_obj <- Seurat::as.SingleCellExperiment(seurat_obj)
+
+        # Convert gene names to Symbols
+        library(annotation)
+        org_db <- org.Mm.eg.db
+
+        ensembl_ids <- rownames(sce_obj)
+        gene_symbols <- AnnotationDbi::mapIds(
+            org_db,
+            keys = ensembl_ids,
+            column = "SYMBOL",
+            keytype = "ENSEMBL"
+        )
+
+        rownames(sce_obj) <- ifelse(
+        is.na(gene_symbols[rownames(sce_obj)]),
+        ensembl_ids,
+        gene_symbols[rownames(sce_obj)]
+        )
+        """
+
         seurat_obj = ro.r["LoadSeuratRds"](str(file_path))  # Load Seurat RDS file # type: ignore
         extracted = ro.r["extract_data"](seurat_obj, assay, layer)  # type: ignore
 
