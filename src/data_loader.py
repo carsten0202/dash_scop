@@ -12,25 +12,132 @@ try:
     importr("base")
     importr("Seurat")
     importr("stats")
-    ro.r("""
-        extract_data <- function(seurat_obj, assay, layer) {
-            metadata <- seurat_obj@meta.data  # Cell metadata
-            gene_matrix <- as.data.frame(LayerData(seurat_obj, assay = assay, layer = layer)) # Expression matrix
-            umap <- as.data.frame(Embeddings(seurat_obj, reduction = "umap"))  # UMAP coordinates
-            return(list(metadata = metadata, gene_matrix = gene_matrix, umap = umap))
-        }
-    """)
 except Exception as e:
     raise ImportError("Required R packages not found. Please ensure 'Seurat' and 'stats' are installed in your R environment.") from e
 
+# Define R functions for loading Seurat objects and extracting data
+ro.r("""
+    extract_data <- function(seurat_obj, assay, layer) {
+        metadata <- seurat_obj@meta.data  # Cell metadata
+        gene_matrix <- as.data.frame(LayerData(seurat_obj, assay = assay, layer = layer)) # Expression matrix
+        umap <- as.data.frame(Embeddings(seurat_obj, reduction = "umap"))  # UMAP coordinates
+        return(list(metadata = metadata, gene_matrix = gene_matrix, umap = umap))
+    }
+
+    
+    .seurat_registry <- new.env(parent = emptyenv())
+
+    register_seurat <- function(file_path, assay, layer) {
+        obj <- LoadSeuratRds(file_path)
+
+        handle <- paste0(
+            basename(file_path), "_",
+            as.integer(Sys.time()), "_",
+            sample.int(1e9, 1)
+        )
+
+        .seurat_registry[[handle]] <- list(
+            obj = obj,
+            assay = assay,
+            layer = layer
+        )
+
+        metadata <- obj@meta.data
+        umap <- as.data.frame(Embeddings(obj, reduction = "umap"))
+        genes <- rownames(LayerData(obj, assay = assay, layer = layer))
+
+        list(
+            handle = handle,
+            metadata = metadata,
+            umap = umap,
+            genes = genes
+        )
+    }
+
+    remove_seurat <- function(handle) {
+        if (exists(handle, envir = .seurat_registry, inherits = FALSE)) {
+            rm(list = handle, envir = .seurat_registry)
+            invisible(gc())
+            return(TRUE)
+        }
+        FALSE
+    }
+
+    get_expression_subset <- function(handle, genes = NULL, cells = NULL) {
+        if (!exists(handle, envir = .seurat_registry, inherits = FALSE)) {
+            stop("Unknown Seurat handle: ", handle)
+        }
+
+        entry <- .seurat_registry[[handle]]
+        obj <- entry$obj
+        assay <- entry$assay
+        layer <- entry$layer
+
+        mat <- LayerData(obj, assay = assay, layer = layer)
+
+        if (!is.null(genes)) {
+            genes <- intersect(genes, rownames(mat))
+            mat <- mat[genes, , drop = FALSE]
+        }
+
+        if (!is.null(cells)) {
+            cells <- intersect(cells, colnames(mat))
+            mat <- mat[, cells, drop = FALSE]
+        }
+
+        # Convert only the requested subset
+        as.matrix(mat)
+    }
+"""
+)
+
+
+
+
+def _optimize_metadata_dtypes(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    for col in df.columns:
+        s = df[col]
+        if pd.api.types.is_object_dtype(s):
+            nunique = s.nunique(dropna=False)
+            if nunique / max(len(s), 1) < 0.5:
+                df[col] = s.astype("category")
+        elif pd.api.types.is_integer_dtype(s):
+            df[col] = pd.to_numeric(s, downcast="integer")
+        elif pd.api.types.is_float_dtype(s):
+            df[col] = pd.to_numeric(s, downcast="float")
+    return df
 
 def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"):
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File {file_path} not found.")
+
+    with localconverter(ro.default_converter + pandas2ri.converter):
+        extracted = ro.r["register_seurat"](str(file_path), assay, layer) # type: ignore
+
+        handle = str(extracted[0][0])
+        metadata_df = _optimize_metadata_dtypes(extracted[1])
+
+        umap_df = extracted[2]
+        umap_df.columns = umap_df.columns.str.upper()
+
+        gene_names = list(extracted[3])
+
+    return {
+        "seurat_handle": handle,
+        "gene_names": gene_names,
+        "metadata": metadata_df,
+        "umap": umap_df,
+    }
+
+
+
+def old_load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"):
     """Reads an RDS file containing a Seurat object and extracts relevant data."""
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File {file_path} not found.")
 
     with localconverter(ro.default_converter + pandas2ri.converter):
-
         """
         # Join layers to convert to SCE
         seurat_obj <- SeuratObject::JoinLayers(seurat_obj, assay = "RNA")
@@ -75,19 +182,19 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
 
         # DataFrame suitable for boxplots & violon plots
         gene_matrix_df = extracted[1]  # Gene expression matrix as pandas DataFrame
-        boxplot_df = pd.concat([metadata_df, gene_matrix_df.transpose()], axis=1)
+#        boxplot_df = pd.concat([metadata_df, gene_matrix_df.transpose()], axis=1)
 
         # DataFrame for Heatmaps
-        heatmap_df = gene_matrix_df.apply(zscore, axis=1, result_type="broadcast")
+#        heatmap_df = gene_matrix_df.apply(zscore, axis=1, result_type="broadcast")
 
         # DataFrame for UMAP plotting
         umap_df = extracted[2]  # UMAP data as pandas DataFrame...
         umap_df.columns = umap_df.columns.str.upper()  # ...and set column names to uppercase
 
         return {
-            "boxplot": boxplot_df,
+            "boxplot": None,
             "gene_counts": gene_matrix_df,
-            "heatmap": heatmap_df,
+            "heatmap": None,
             "metadata": metadata_df,
             "umap": umap_df,
         }
