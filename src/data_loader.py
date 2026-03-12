@@ -49,9 +49,9 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
         )
 
         rownames(sce_obj) <- ifelse(
-        is.na(gene_symbols[rownames(sce_obj)]),
-        ensembl_ids,
-        gene_symbols[rownames(sce_obj)]
+            is.na(gene_symbols[rownames(sce_obj)]),
+            ensembl_ids,
+            gene_symbols[rownames(sce_obj)]
         )
         """
 
