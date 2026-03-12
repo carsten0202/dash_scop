@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import rpy2.robjects as ro
@@ -92,7 +93,11 @@ def generate_boxplot(boxplot_df, selected_barcodes, shape_column, gene, barcodes
 # Helper to generate a heatmap figure
 def generate_heatmap(matrix_df, selected_genes, selected_barcodes):
     heatmap_df = matrix_df.apply(
-        lambda row: pd.Series(zscore(row, nan_policy="omit"), index=row.index),
+        lambda row: pd.Series(
+            np.asarray(zscore(row, nan_policy="omit")),
+            index=row.index,
+            dtype=float,
+        ),
         axis=1,
         result_type="broadcast",
     )
