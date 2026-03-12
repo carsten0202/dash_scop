@@ -9,58 +9,10 @@ import rpy2.robjects as ro
 import yaml
 from rpy2.robjects import pandas2ri
 from rpy2.robjects.conversion import localconverter
+from scipy.stats import zscore
 
 import settings
 
-
-# -------------------------------------------------------------------
-# Helper to generate a boxplot figure
-def generate_boxplot(boxplot_df, selected_barcodes, shape_column, gene, barcodes_color):
-    """Generate a boxplot figure."""
-    if shape_column and shape_column in boxplot_df.columns:  # If shape column is specified and exists
-        fig = px.box(
-            boxplot_df.loc[selected_barcodes, [shape_column, gene]],
-            x=shape_column,
-            y=gene,
-            color=barcodes_color[selected_barcodes] if barcodes_color is not None else None,
-            labels={shape_column: shape_column, gene: "Expression"},
-            title=f"Boxplot for {gene}",
-        )
-    else:
-        fig = px.box(  # If no shape column, plot all in one box
-            boxplot_df.loc[selected_barcodes, gene],
-            y=gene,
-            labels={gene: "Expression"},
-            color=barcodes_color[selected_barcodes] if barcodes_color is not None else None,
-            title=f"Boxplot for {gene}",
-        )
-    return fig
-
-
-# -------------------------------------------------------------------
-
-# -------------------------------------------------------------------
-# Helper to generate a heatmap figure
-def generate_heatmap(heatmap_df, selected_genes, selected_barcodes):
-    heatmap_figure = px.imshow(
-        heatmap_df,
-        color_continuous_scale="Viridis",
-        title="Gene Expression Heatmap",
-        x=heatmap_df.columns,  # columns
-        y=selected_genes,  # rows
-        aspect="auto",
-        # aspect="equal",
-        labels=dict(x="Cells", y="Genes", color="Expr"),  # axis titles & color-bar
-    )
-
-    # Don't show labels if there's too many
-    if len(selected_genes) > settings.max_features:
-        heatmap_figure.update_yaxes(showticklabels=False)
-    if len(selected_barcodes) > 2 * settings.max_features:
-        heatmap_figure.update_xaxes(showticklabels=False)
-
-    return heatmap_figure
-# -------------------------------------------------------------------
 
 # -------------------------------------------------------------------
 # Helper to fetch expression subset for given genes and cells
@@ -79,6 +31,7 @@ def fetch_expression_subset(
 
     return mat
 # -------------------------------------------------------------------
+
 
 # -------------------------------------------------------------------
 # Helper to build the filter schema from the metadata
@@ -107,8 +60,60 @@ def filter_from_metadata(metadata_df):
             continue  # Skip unsupported types
         filter_schema.append(f)
     return filter_schema
+# -------------------------------------------------------------------
 
 
+# -------------------------------------------------------------------
+# Helper to generate a boxplot figure
+def generate_boxplot(boxplot_df, selected_barcodes, shape_column, gene, barcodes_color):
+    """Generate a boxplot figure."""
+    if shape_column and shape_column in boxplot_df.columns:  # If shape column is specified and exists
+        fig = px.box(
+            boxplot_df.loc[selected_barcodes, [shape_column, gene]],
+            x=shape_column,
+            y=gene,
+            color=barcodes_color[selected_barcodes] if barcodes_color is not None else None,
+            labels={shape_column: shape_column, gene: "Expression"},
+            title=f"Boxplot for {gene}",
+        )
+    else:
+        fig = px.box(  # If no shape column, plot all in one box
+            boxplot_df.loc[selected_barcodes, gene],
+            y=gene,
+            labels={gene: "Expression"},
+            color=barcodes_color[selected_barcodes] if barcodes_color is not None else None,
+            title=f"Boxplot for {gene}",
+        )
+    return fig
+# -------------------------------------------------------------------
+
+
+# -------------------------------------------------------------------
+# Helper to generate a heatmap figure
+def generate_heatmap(matrix_df, selected_genes, selected_barcodes):
+    heatmap_df = matrix_df.apply(
+        lambda row: pd.Series(zscore(row, nan_policy="omit"), index=row.index),
+        axis=1,
+        result_type="broadcast",
+    )
+    heatmap_figure = px.imshow(
+        heatmap_df,
+        color_continuous_scale="Viridis",
+        title="Gene Expression Heatmap",
+        x=heatmap_df.columns,  # columns
+        y=selected_genes,  # rows
+        aspect="auto",
+        # aspect="equal",
+        labels=dict(x="Cells", y="Genes", color="Expr"),  # axis titles & color-bar
+    )
+
+    # Don't show labels if there's too many
+    if len(selected_genes) > settings.max_features:
+        heatmap_figure.update_yaxes(showticklabels=False)
+    if len(selected_barcodes) > 2 * settings.max_features:
+        heatmap_figure.update_xaxes(showticklabels=False)
+
+    return heatmap_figure
 # -------------------------------------------------------------------
 
 
@@ -125,8 +130,6 @@ def scan_files(dir_path: Path) -> list[str]:
                 out.append(str(rel).replace(os.sep, "/"))
     out.sort()
     return out
-
-
 # -------------------------------------------------------------------
 
 
