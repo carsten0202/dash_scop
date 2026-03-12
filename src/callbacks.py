@@ -15,7 +15,7 @@ from flask_caching import Cache
 
 import settings
 from data_loader import load_seurat_rds
-from helpers import filter_from_metadata, generate_boxplot, parse_upload, scan_files
+from helpers import filter_from_metadata, generate_boxplot, generate_heatmap, parse_upload, scan_files
 from layout import make_filter_component
 
 # Store the last generated figure
@@ -331,23 +331,7 @@ def register_callbacks(app):
             elif plot_type == "heatmap":
                 selected_genes = selected_genes or seurat_data["heatmap"].index.tolist()  # Default to all genes
                 heatmap_df = seurat_data["heatmap"].loc[selected_genes, selected_barcodes]  # Get gene count data
-                last_figure = px.imshow(
-                    heatmap_df,
-                    color_continuous_scale="Viridis",
-                    title="Gene Expression Heatmap",
-                    x=heatmap_df.columns,  # columns
-                    y=selected_genes,  # rows
-                    aspect="auto",
-                    # aspect="equal",
-                    labels=dict(x="Cells", y="Genes", color="Expr"),  # axis titles & color-bar
-                )
-
-                # Don't show labels if there's too many
-                if len(selected_genes) > settings.max_features:
-                    last_figure.update_yaxes(showticklabels=False)
-                if len(selected_barcodes) > 2 * settings.max_features:
-                    last_figure.update_xaxes(showticklabels=False)
-
+                last_figure = generate_heatmap(heatmap_df, selected_genes, selected_barcodes)  # Generate heatmap (for side-effect of setting global last_figure for export)
                 plot_figures.append(
                     html.Div(dcc.Graph(figure=last_figure), style={"flex": "1 1 auto", "minHeight": 0, "minWidth": 0})
                 )
