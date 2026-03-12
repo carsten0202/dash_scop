@@ -2,6 +2,7 @@ import base64
 import json
 import os
 from pathlib import Path
+from tkinter.messagebox import IGNORE
 
 import numpy as np
 import pandas as pd
@@ -92,15 +93,10 @@ def generate_boxplot(boxplot_df, selected_barcodes, shape_column, gene, barcodes
 # -------------------------------------------------------------------
 # Helper to generate a heatmap figure
 def generate_heatmap(matrix_df, selected_genes, selected_barcodes):
-    heatmap_df = matrix_df.apply(
-        lambda row: pd.Series(
-            np.asarray(zscore(row, nan_policy="omit")),
-            index=row.index,
-            dtype=float,
-        ),
-        axis=1,
-        result_type="broadcast",
-    )
+    means = matrix_df.mean(axis=1)
+    stds = matrix_df.std(axis=1)
+    heatmap_df = matrix_df.sub(means, axis=0).div(stds, axis=0)
+
     heatmap_figure = px.imshow(
         heatmap_df,
         color_continuous_scale="Viridis",
