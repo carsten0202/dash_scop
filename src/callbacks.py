@@ -6,14 +6,12 @@ from datetime import datetime
 from pathlib import Path
 
 import dash_bootstrap_components as dbc
-import pandas as pd
 import plotly.express as px
 import plotly.io as pio
 import yaml
 from dash import ALL, Input, Output, State, ctx, dcc, html, no_update
 from dash.dcc.express import send_string
 from flask_caching import Cache
-from scipy.stats import zscore
 
 import settings
 from data_loader import load_seurat_rds
@@ -339,14 +337,10 @@ def register_callbacks(app):
 
             elif plot_type == "heatmap":
                 selected_genes = selected_genes or seurat_data["heatmap"].index.tolist()  # Default to all genes
-                gene_matrix_df = fetch_expression_subset( # Get gene count dataframe for selected genes and cells from the seurat data in cache
+                heatmap_df = fetch_expression_subset( # Get gene count dataframe for selected genes and cells from the seurat data in cache
                     seurat_data["seurat_handle"],
                     genes=selected_genes,
                     cells=list(selected_barcodes),
-                )
-                heatmap_df = gene_matrix_df.apply(
-                    lambda row: pd.Series(zscore(row, nan_policy="omit"), index=row.index),
-                    axis=1,
                 )
                 last_figure = generate_heatmap(heatmap_df, selected_genes, selected_barcodes)  # Generate heatmap (side-effect of setting global last_figure for export)
                 plot_figures.append(
