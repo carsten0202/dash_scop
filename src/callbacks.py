@@ -336,7 +336,7 @@ def register_callbacks(app):
                     plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
             elif plot_type == "heatmap":
-                selected_genes = selected_genes or seurat_data["heatmap"].index.tolist()  # Default to all genes
+#                selected_genes = selected_genes or seurat_data["heatmap"].index.tolist()  # Default to all genes
                 heatmap_df = fetch_expression_subset( # Get gene count dataframe for selected genes and cells from the seurat data in cache
                     seurat_data["seurat_handle"],
                     genes=selected_genes,
