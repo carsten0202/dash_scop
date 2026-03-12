@@ -331,7 +331,7 @@ def register_callbacks(app):
             elif plot_type == "heatmap":
                 selected_genes = selected_genes or seurat_data["heatmap"].index.tolist()  # Default to all genes
                 heatmap_df = seurat_data["heatmap"].loc[selected_genes, selected_barcodes]  # Get gene count data
-                last_figure = generate_heatmap(heatmap_df, selected_genes, selected_barcodes)  # Generate heatmap (for side-effect of setting global last_figure for export)
+                last_figure = generate_heatmap(heatmap_df, selected_genes, selected_barcodes)  # Generate heatmap (side-effect of setting global last_figure for export)
                 plot_figures.append(
                     html.Div(dcc.Graph(figure=last_figure), style={"flex": "1 1 auto", "minHeight": 0, "minWidth": 0})
                 )
