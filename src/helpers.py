@@ -3,8 +3,12 @@ import json
 import os
 from pathlib import Path
 
+import pandas as pd
 import plotly.express as px
+import rpy2.robjects as ro
 import yaml
+from rpy2.robjects import pandas2ri
+from rpy2.robjects.conversion import localconverter
 
 import settings
 
@@ -58,6 +62,23 @@ def generate_heatmap(heatmap_df, selected_genes, selected_barcodes):
     return heatmap_figure
 # -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# Helper to fetch expression subset for given genes and cells
+def fetch_expression_subset(
+    seurat_handle: str,
+    genes: list[str] | None = None,
+    cells: list[str] | None = None,
+) -> pd.DataFrame:
+    with localconverter(ro.default_converter + pandas2ri.converter):
+        r_genes = ro.StrVector(genes) if genes else ro.NULL
+        r_cells = ro.StrVector(cells) if cells else ro.NULL
+        mat = ro.r["get_expression_subset_matrix"](seurat_handle, r_genes, r_cells) # type: ignore
+
+    if not isinstance(mat, pd.DataFrame):
+        mat = pd.DataFrame(mat)
+
+    return mat
+# -------------------------------------------------------------------
 
 # -------------------------------------------------------------------
 # Helper to build the filter schema from the metadata
