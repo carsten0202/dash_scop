@@ -12,6 +12,14 @@ try:
     importr("base")
     importr("Seurat")
     importr("stats")
+    ro.r("""
+        extract_data <- function(seurat_obj, assay, layer) {
+            metadata <- seurat_obj@meta.data  # Cell metadata
+            gene_matrix <- as.data.frame(LayerData(seurat_obj, assay = assay, layer = layer)) # Expression matrix
+            umap <- as.data.frame(Embeddings(seurat_obj, reduction = "umap"))  # UMAP coordinates
+            return(list(metadata = metadata, gene_matrix = gene_matrix, umap = umap))
+        }
+    """)
 except Exception as e:
     raise ImportError("Required R packages not found. Please ensure 'Seurat' and 'stats' are installed in your R environment.") from e
 
@@ -22,14 +30,6 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
         raise FileNotFoundError(f"File {file_path} not found.")
 
     with localconverter(ro.default_converter + pandas2ri.converter):
-        ro.r("""
-        extract_data <- function(seurat_obj, assay, layer) {
-            metadata <- seurat_obj@meta.data  # Cell metadata
-            gene_matrix <- as.data.frame(LayerData(seurat_obj, assay = assay, layer = layer)) # Expression matrix
-            umap <- as.data.frame(Embeddings(seurat_obj, reduction = "umap"))  # UMAP coordinates
-            return(list(metadata = metadata, gene_matrix = gene_matrix, umap = umap))
-        }
-        """)
 
         """
         # Join layers to convert to SCE
