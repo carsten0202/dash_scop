@@ -6,16 +6,25 @@ from datetime import datetime
 from pathlib import Path
 
 import dash_bootstrap_components as dbc
+import pandas as pd
 import plotly.express as px
 import plotly.io as pio
 import yaml
 from dash import ALL, Input, Output, State, ctx, dcc, html, no_update
 from dash.dcc.express import send_string
 from flask_caching import Cache
+from scipy.stats import zscore
 
 import settings
 from data_loader import load_seurat_rds
-from helpers import filter_from_metadata, generate_boxplot, generate_heatmap, parse_upload, scan_files
+from helpers import (
+    fetch_expression_subset,
+    filter_from_metadata,
+    generate_boxplot,
+    generate_heatmap,
+    parse_upload,
+    scan_files,
+)
 from layout import make_filter_component
 
 # Store the last generated figure
@@ -330,7 +339,15 @@ def register_callbacks(app):
 
             elif plot_type == "heatmap":
                 selected_genes = selected_genes or seurat_data["heatmap"].index.tolist()  # Default to all genes
-                heatmap_df = seurat_data["heatmap"].loc[selected_genes, selected_barcodes]  # Get gene count data
+                gene_matrix_df = fetch_expression_subset( # Get gene count dataframe for selected genes and cells from the seurat data in cache
+                    seurat_data["seurat_handle"],
+                    genes=selected_genes,
+                    cells=list(selected_barcodes),
+                )
+                heatmap_df = gene_matrix_df.apply(
+                    lambda row: pd.Series(zscore(row, nan_policy="omit"), index=row.index),
+                    axis=1,
+                )
                 last_figure = generate_heatmap(heatmap_df, selected_genes, selected_barcodes)  # Generate heatmap (side-effect of setting global last_figure for export)
                 plot_figures.append(
                     html.Div(dcc.Graph(figure=last_figure), style={"flex": "1 1 auto", "minHeight": 0, "minWidth": 0})
@@ -394,8 +411,8 @@ def register_offcanvas_callbacks(app, cache):
         :param selected_genes: Description
         """
         try:
-            gene_matrix_df = cache.get(dataset_key)["gene_counts"]  # Get gene count data from seurat data in cache
-            gene_options = [{"label": gene, "value": gene} for gene in gene_matrix_df.index]
+            gene_names = cache.get(dataset_key)["gene_names"]
+            gene_options = [{"label": gene, "value": gene} for gene in gene_names]
         except TypeError:
             return no_update, no_update
 
