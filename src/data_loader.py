@@ -24,11 +24,15 @@ ro.r("""
         return(list(metadata = metadata, gene_matrix = gene_matrix, umap = umap))
     }
 
-    
     .seurat_registry <- new.env(parent = emptyenv())
 
-    register_seurat <- function(file_path, assay, layer) {
+    register_seurat_matrix <- function(file_path, assay, layer) {
         obj <- LoadSeuratRds(file_path)
+
+        mat <- LayerData(obj, assay = assay, layer = layer)
+        metadata <- obj@meta.data
+        umap <- as.data.frame(Embeddings(obj, reduction = "umap"))
+        genes <- rownames(mat)
 
         handle <- paste0(
             basename(file_path), "_",
@@ -37,14 +41,14 @@ ro.r("""
         )
 
         .seurat_registry[[handle]] <- list(
-            obj = obj,
-            assay = assay,
-            layer = layer
+            mat = mat,
+            metadata = metadata,
+            umap = umap,
+            genes = genes
         )
 
-        metadata <- obj@meta.data
-        umap <- as.data.frame(Embeddings(obj, reduction = "umap"))
-        genes <- rownames(LayerData(obj, assay = assay, layer = layer))
+        rm(obj)
+        invisible(gc())
 
         list(
             handle = handle,
@@ -54,26 +58,13 @@ ro.r("""
         )
     }
 
-    remove_seurat <- function(handle) {
-        if (exists(handle, envir = .seurat_registry, inherits = FALSE)) {
-            rm(list = handle, envir = .seurat_registry)
-            invisible(gc())
-            return(TRUE)
-        }
-        FALSE
-    }
-
-    get_expression_subset <- function(handle, genes = NULL, cells = NULL) {
-        if (!exists(handle, envir = .seurat_registry, inherits = FALSE)) {
-            stop("Unknown Seurat handle: ", handle)
-        }
-
+    get_expression_subset_matrix <- function(handle, genes = NULL, cells = NULL) {
         entry <- .seurat_registry[[handle]]
-        obj <- entry$obj
-        assay <- entry$assay
-        layer <- entry$layer
+        if (is.null(entry)) {
+            stop("Unknown handle: ", handle)
+        }
 
-        mat <- LayerData(obj, assay = assay, layer = layer)
+        mat <- entry$mat
 
         if (!is.null(genes)) {
             genes <- intersect(genes, rownames(mat))
@@ -85,9 +76,18 @@ ro.r("""
             mat <- mat[, cells, drop = FALSE]
         }
 
-        # Convert only the requested subset
         as.matrix(mat)
     }
+
+    remove_seurat_matrix <- function(handle) {
+        if (exists(handle, envir = .seurat_registry, inherits = FALSE)) {
+            rm(list = handle, envir = .seurat_registry)
+            invisible(gc())
+            return(TRUE)
+        }
+        FALSE
+    }
+
 """
 )
 
@@ -113,7 +113,7 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
         raise FileNotFoundError(f"File {file_path} not found.")
 
     with localconverter(ro.default_converter + pandas2ri.converter):
-        extracted = ro.r["register_seurat"](str(file_path), assay, layer) # type: ignore
+        extracted = ro.r["register_seurat_matrix"](str(file_path), assay, layer) # type: ignore
 
         handle = str(extracted[0][0])
         metadata_df = _optimize_metadata_dtypes(extracted[1])
