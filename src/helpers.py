@@ -35,6 +35,29 @@ def generate_boxplot(boxplot_df, selected_barcodes, shape_column, gene, barcodes
 
 # -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# Helper to generate a heatmap figure
+def generate_heatmap(heatmap_df, selected_genes, selected_barcodes):
+    heatmap_figure = px.imshow(
+        heatmap_df,
+        color_continuous_scale="Viridis",
+        title="Gene Expression Heatmap",
+        x=heatmap_df.columns,  # columns
+        y=selected_genes,  # rows
+        aspect="auto",
+        # aspect="equal",
+        labels=dict(x="Cells", y="Genes", color="Expr"),  # axis titles & color-bar
+    )
+
+    # Don't show labels if there's too many
+    if len(selected_genes) > settings.max_features:
+        heatmap_figure.update_yaxes(showticklabels=False)
+    if len(selected_barcodes) > 2 * settings.max_features:
+        heatmap_figure.update_xaxes(showticklabels=False)
+
+    return heatmap_figure
+# -------------------------------------------------------------------
+
 
 # -------------------------------------------------------------------
 # Helper to build the filter schema from the metadata
