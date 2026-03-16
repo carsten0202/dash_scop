@@ -86,7 +86,7 @@ def get_layout(config_data):
         # Download button and filter components
         dbc.Row(
             [
-                dbc.Col(dbc.Button("Gene Filter Panel", id="open-left-offcanvas", n_clicks=0, disabled=True), width=2),
+                dbc.Col(dbc.Button("Gene Filter Panel", id="open-left-offcanvas", n_clicks=0), width=2),
                 dbc.Col(dbc.Button("Export Plot SVG", id="download-svg-btn", n_clicks=0), width=2,),
                 dbc.Col(dbc.Button("Barcode Filter Panel", id="open-right-offcanvas", n_clicks=0), width=2),
             ],
