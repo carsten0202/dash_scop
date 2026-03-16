@@ -141,18 +141,6 @@ def register_callbacks(app):
 
 
     @app.callback(
-        Output("open-left-offcanvas", "disabled"),
-        Input("plot-selector", "value"),
-    )
-    def toggle_gene_selector(plot_type):
-        # List of plots that should show the gene selector
-        plots_showing_genes = ["boxplot", "violin", "heatmap"]  # Update as needed
-        if plot_type in plots_showing_genes:
-            return False
-        else:
-            return True
-
-    @app.callback(
         Output("filter-left-offcanvas", "is_open"),
         Input("open-left-offcanvas", "n_clicks"),
         State("filter-left-offcanvas", "is_open"),
