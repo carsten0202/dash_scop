@@ -75,7 +75,16 @@ ro.r("""
             cells <- intersect(cells, colnames(mat))
             mat <- mat[, cells, drop = FALSE]
         }
-        as.matrix(mat)
+     
+        bytes_needed <- as.double(nrow(mat)) * as.double(ncol(mat)) * 8
+     
+        list(
+            data = as.matrix(mat),
+            genes = rownames(mat),
+            cells = colnames(mat),
+            nrow = nrow(mat),
+            ncol = ncol(mat)
+        )
     }
 
     remove_seurat_matrix <- function(handle) {
