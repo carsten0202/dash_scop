@@ -77,6 +77,15 @@ ro.r("""
         }
      
         bytes_needed <- as.double(nrow(mat)) * as.double(ncol(mat)) * 8
+        max_heatmap_bytes <- 2000 * 1024^2  # e.g. 2000 MB
+        if (bytes_needed > max_heatmap_bytes) {
+            stop(
+                sprintf(
+                    "Heatmap subset too large to materialize safely (%d x %d, ~%.1f MB dense). Refine filters or reduce genes/cells.",
+                    nrow(mat), ncol(mat), bytes_needed / 1024^2
+                )
+            )
+        }
      
         list(
             data = as.matrix(mat),
