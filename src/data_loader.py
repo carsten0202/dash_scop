@@ -53,7 +53,8 @@ ro.r("""
             handle = handle,
             metadata = metadata,
             umap = umap,
-            genes = genes
+            genes = genes,
+            barcodes = colnames(mat)
         )
     }
 
@@ -64,17 +65,14 @@ ro.r("""
         }
 
         mat <- entry$mat
-
         if (!is.null(genes)) {
             genes <- intersect(genes, rownames(mat))
             mat <- mat[genes, , drop = FALSE]
         }
-
         if (!is.null(cells)) {
             cells <- intersect(cells, colnames(mat))
             mat <- mat[, cells, drop = FALSE]
         }
-
         as.matrix(mat)
     }
 
@@ -121,6 +119,10 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
         umap_df.columns = umap_df.columns.str.upper()
 
         gene_names = list(extracted[3])
+
+        print(f"Loaded Seurat object from {file_path} with handle {handle}. Metadata shape: {metadata_df.shape}, UMAP shape: {umap_df.shape}, Number of genes: {len(gene_names)}")
+        print(f'Data Matrix: {extracted[4][1]}')
+        print(f'Meta Matrix: {metadata_df}')
 
     return {
         "seurat_handle": handle,
