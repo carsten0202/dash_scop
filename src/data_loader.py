@@ -77,7 +77,7 @@ ro.r("""
         }
      
         bytes_needed <- as.double(nrow(mat)) * as.double(ncol(mat)) * 8
-        max_heatmap_bytes <- 2000 * 1024^2  # e.g. 2000 MB
+        max_heatmap_bytes <- 5000 * 1024^2  # e.g. 5000 MB
         if (bytes_needed > max_heatmap_bytes) {
             stop(
                 sprintf(
