@@ -90,7 +90,7 @@ def generate_boxplot(boxplot_df, selected_barcodes, shape_column, gene, barcodes
 
 # -------------------------------------------------------------------
 # Helper to generate a heatmap figure
-def generate_heatmap(matrix_df, selected_genes, selected_barcodes):
+def generate_heatmap(matrix_df):
     means = matrix_df.mean(axis=1)
     stds = matrix_df.std(axis=1)
     heatmap_df = matrix_df.sub(means, axis=0).div(stds, axis=0)
@@ -103,13 +103,13 @@ def generate_heatmap(matrix_df, selected_genes, selected_barcodes):
         y=heatmap_df.index.tolist(), # rows
         aspect="auto",
         # aspect="equal",
-        labels=dict(x="Cells", y="Genes", color="Expr"),  # axis titles & color-bar
+        labels=dict(x="Barcodes", y="Genes", color="Expr"),  # axis titles & color-bar
     )
 
     # Don't show labels if there's too many
-    if len(selected_genes) > settings.max_features:
+    if len(heatmap_df.columns) > settings.max_features:
         heatmap_figure.update_yaxes(showticklabels=False)
-    if len(selected_barcodes) > 2 * settings.max_features:
+    if len(heatmap_df.index.tolist()) > 2 * settings.max_features:
         heatmap_figure.update_xaxes(showticklabels=False)
 
     return heatmap_figure
