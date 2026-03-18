@@ -24,15 +24,12 @@ def fetch_expression_subset(
     with localconverter(ro.default_converter + pandas2ri.converter):
         r_genes = ro.StrVector(genes) if genes else ro.NULL
         r_cells = ro.StrVector(cells) if cells else ro.NULL
-        mat = ro.r["get_expression_subset_matrix"](seurat_handle, r_genes, r_cells) # type: ignore
+        res = ro.r["get_expression_subset_matrix"](seurat_handle, r_genes, r_cells)  # type: ignore
 
-    if not isinstance(mat, pd.DataFrame):
-        raise TypeError(f"Expected pandas DataFrame from R, got {type(mat)!r}")
-
-    if not isinstance(mat, pd.DataFrame):
-        mat = pd.DataFrame(mat)
-
-    return mat
+    values = res[0]
+    rownames = list(res[1])
+    colnames = list(res[2])
+    return pd.DataFrame(values, index=rownames, columns=colnames)
 # -------------------------------------------------------------------
 
 
@@ -103,7 +100,7 @@ def generate_heatmap(matrix_df, selected_genes, selected_barcodes):
         color_continuous_scale="Viridis",
         title="Gene Expression Heatmap",
         x=heatmap_df.columns,  # columns
-        y=selected_genes,  # rows
+        y=heatmap_df.index.tolist(), # rows
         aspect="auto",
         # aspect="equal",
         labels=dict(x="Cells", y="Genes", color="Expr"),  # axis titles & color-bar
