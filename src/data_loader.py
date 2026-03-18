@@ -32,6 +32,7 @@ ro.r("""
         metadata <- obj@meta.data
         umap <- as.data.frame(Embeddings(obj, reduction = "umap"))
         genes <- rownames(mat)
+        barcodes <- colnames(mat)
 
         handle <- paste0(
             basename(file_path), "_",
@@ -43,7 +44,8 @@ ro.r("""
             mat = mat,
             metadata = metadata,
             umap = umap,
-            genes = genes
+            genes = genes,
+            barcodes = barcodes
         )
 
         rm(obj)
@@ -120,9 +122,11 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
 
         gene_names = list(extracted[3])
 
+        mat = ro.r["get_expression_subset_matrix"](handle, extracted[3][1:7], extracted[4][1:7]) # type: ignore
         print(f"Loaded Seurat object from {file_path} with handle {handle}. Metadata shape: {metadata_df.shape}, UMAP shape: {umap_df.shape}, Number of genes: {len(gene_names)}")
-        print(f'Data Matrix: {extracted[4][1]}')
+        print(f'Data Bit: {extracted[4][1:7]}')
         print(f'Meta Matrix: {metadata_df}')
+        print(f"Data Matrix: {mat}\nMatrix Shape: {mat.shape}")
 
     return {
         "seurat_handle": handle,
