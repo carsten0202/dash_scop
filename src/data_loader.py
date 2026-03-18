@@ -135,7 +135,7 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
         print(f"Loaded Seurat object from {file_path} with handle {handle}. Metadata shape: {metadata_df.shape}, UMAP shape: {umap_df.shape}, Number of genes: {len(gene_names)}")
         print(f'Data Bit: {extracted[4][1:7]}')
         print(f'Meta Matrix: {metadata_df}')
-        print(f"Data Matrix: {mat}\nMatrix Shape: {mat.shape}")
+        print(f"Data Matrix: {mat[0]}\nMatrix Shape: {mat[0].shape}")
 
     return {
         "seurat_handle": handle,
