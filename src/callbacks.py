@@ -257,7 +257,7 @@ def register_callbacks(app):
             )
 
         try:
-            selected_barcodes = cell_index["index"]  # Get filtered cell/barcodes indices from cache
+            selected_cells = cell_index["index"]  # Get filtered cell/barcodes indices from cache
             barcodes_color = cell_index["color"]  # Get colors matching index from cache
             barcodes_shape = cell_index["shape"]  # Get shapes matching index from cache
             if plot_type == "boxplot":
@@ -268,7 +268,7 @@ def register_callbacks(app):
                     raise ValueError(f"For Boxplots please select no more than {settings.max_features} features.")
                 boxplot_df = seurat_data["boxplot"]  # Get boxplot data from seurat data in cache
                 for gene in selected_genes:
-                    last_figure = generate_boxplot(boxplot_df, selected_barcodes, shape_column, gene, barcodes_color)
+                    last_figure = generate_boxplot(boxplot_df, selected_cells, shape_column, gene, barcodes_color)
                     plot_figures.append(
                         html.Div(
                             dcc.Graph(figure=last_figure),
@@ -279,7 +279,7 @@ def register_callbacks(app):
             elif plot_type == "umap":
                 umap_df = cache.get(dataset_key)["umap"]  # Get umap data from cache
                 last_figure = px.scatter(
-                    umap_df.loc[selected_barcodes],
+                    umap_df.loc[selected_cells],
                     x="UMAP_1",
                     y="UMAP_2",
                     color=barcodes_color,
@@ -302,11 +302,11 @@ def register_callbacks(app):
 
                 violin_df = (
                     seurat_data["boxplot"]
-                    .loc[selected_barcodes, selected_genes]
+                    .loc[selected_cells, selected_genes]
                     .melt(var_name="Gene", value_name="Expression")
                 )
                 if barcodes_color is not None:
-                    color_for_plot = barcodes_color[selected_barcodes].to_list() * len(selected_genes)
+                    color_for_plot = barcodes_color[selected_cells].to_list() * len(selected_genes)
                 else:
                     color_for_plot = None
 
@@ -328,9 +328,9 @@ def register_callbacks(app):
                 heatmap_df = fetch_expression_subset( # Get gene count dataframe for selected genes and cells from the seurat data in cache
                     seurat_data["seurat_handle"],
                     genes=selected_genes,
-                    cells=list(selected_barcodes),
+                    cells=list(selected_cells),
                 )
-                last_figure = generate_heatmap(heatmap_df, selected_genes, selected_barcodes)  # Generate heatmap (side-effect of setting global last_figure for export)
+                last_figure = generate_heatmap(heatmap_df)  # Generate heatmap (side-effect of setting global last_figure for export)
                 plot_figures.append(
                     html.Div(dcc.Graph(figure=last_figure), style={"flex": "1 1 auto", "minHeight": 0, "minWidth": 0})
                 )
