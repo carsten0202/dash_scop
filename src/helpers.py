@@ -4,14 +4,12 @@ import os
 from pathlib import Path
 from tkinter.messagebox import IGNORE
 
-import numpy as np
 import pandas as pd
 import plotly.express as px
 import rpy2.robjects as ro
 import yaml
 from rpy2.robjects import pandas2ri
 from rpy2.robjects.conversion import localconverter
-from scipy.stats import zscore
 
 import settings
 
