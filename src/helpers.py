@@ -27,6 +27,9 @@ def fetch_expression_subset(
         mat = ro.r["get_expression_subset_matrix"](seurat_handle, r_genes, r_cells) # type: ignore
 
     if not isinstance(mat, pd.DataFrame):
+        raise TypeError(f"Expected pandas DataFrame from R, got {type(mat)!r}")
+
+    if not isinstance(mat, pd.DataFrame):
         mat = pd.DataFrame(mat)
 
     return mat
