@@ -2,7 +2,6 @@ import base64
 import json
 import os
 from pathlib import Path
-from tkinter.messagebox import IGNORE
 
 import pandas as pd
 import plotly.express as px
