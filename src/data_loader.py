@@ -16,13 +16,6 @@ except Exception as e:
 
 # Define R functions for loading Seurat objects and extracting data
 ro.r("""
-    extract_data <- function(seurat_obj, assay, layer) {
-        metadata <- seurat_obj@meta.data  # Cell metadata
-        gene_matrix <- as.data.frame(LayerData(seurat_obj, assay = assay, layer = layer)) # Expression matrix
-        umap <- as.data.frame(Embeddings(seurat_obj, reduction = "umap"))  # UMAP coordinates
-        return(list(metadata = metadata, gene_matrix = gene_matrix, umap = umap))
-    }
-
     .seurat_registry <- new.env(parent = emptyenv())
 
     register_seurat_matrix <- function(file_path, assay, layer) {
@@ -32,7 +25,7 @@ ro.r("""
         metadata <- obj@meta.data
         umap <- as.data.frame(Embeddings(obj, reduction = "umap"))
         genes <- rownames(mat)
-        barcodes <- colnames(mat)
+        cells <- colnames(mat)
 
         handle <- paste0(
             basename(file_path), "_",
@@ -41,22 +34,21 @@ ro.r("""
         )
 
         .seurat_registry[[handle]] <- list(
-            mat = mat,
+            matrix = mat,
             metadata = metadata,
             umap = umap,
             genes = genes,
-            barcodes = barcodes
+            cells = cells
         )
 
         rm(obj)
-        invisible(gc())
-
+ 
         list(
             handle = handle,
             metadata = metadata,
             umap = umap,
             genes = genes,
-            barcodes = colnames(mat)
+            cells = colnames(mat)
         )
     }
 
@@ -66,7 +58,7 @@ ro.r("""
             stop("Unknown handle: ", handle)
         }
 
-        mat <- entry$mat
+        mat <- entry$matrix
         if (!is.null(genes)) {
             genes <- intersect(genes, rownames(mat))
             mat <- mat[genes, , drop = FALSE]
@@ -130,25 +122,27 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
         raise FileNotFoundError(f"File {file_path} not found.")
 
     with localconverter(ro.default_converter + pandas2ri.converter):
-        extracted = ro.r["register_seurat_matrix"](str(file_path), assay, layer) # type: ignore
+        registry = ro.r["register_seurat_matrix"](str(file_path), assay, layer) # type: ignore
+        print(f"{type(registry)}")
+        print(f"{list(registry.names())}")
+        print(f"{list(registry.__dir__())}")
 
-        handle = str(extracted[0][0])
-        metadata_df = _optimize_metadata_dtypes(extracted[1])
+        handle = str(registry.getbyname("handle")[0])
+        metadata_df = _optimize_metadata_dtypes(registry.getbyname("metadata"))
 
-        umap_df = extracted[2]
+        umap_df = registry.getbyname("umap")
         umap_df.columns = umap_df.columns.str.upper()
 
-        gene_names = list(extracted[3])
-
-        mat = ro.r["get_expression_subset_matrix"](handle, extracted[3][1:7], extracted[4][1:7]) # type: ignore
-        print(f"Loaded Seurat object from {file_path} with handle {handle}. Metadata shape: {metadata_df.shape}, UMAP shape: {umap_df.shape}, Number of genes: {len(gene_names)}")
-        print(f'Data Bit: {extracted[4][1:7]}')
+        mat = ro.r["get_expression_subset_matrix"](handle, registry.getbyname("genes")[1:7], registry.getbyname("cells")[1:7]) # type: ignore
+        print(f"Loaded Seurat object from {file_path} with handle {handle}. Metadata shape: {metadata_df.shape}, UMAP shape: {umap_df.shape}")
+        print(f'Data Bit: {registry.getbyname("cells")[1:7]}')
         print(f'Meta Matrix: {metadata_df}')
         print(f"Data Matrix: {mat[0]}\nMatrix Shape: {mat[0].shape}")
 
     return {
         "seurat_handle": handle,
-        "gene_names": gene_names,
+        "genes": list(registry.getbyname("genes")),
+        "cells": list(registry.getbyname("cells")),
         "metadata": metadata_df,
         "umap": umap_df,
     }
