@@ -241,7 +241,7 @@ def validate_selected_cells(selected_cells: list[str], all_cells: list[str], max
     alert = None
     if len(selected_cells) > max_cells:
         selected_cells = selected_cells[:max_cells]  # Trim the list to the max allowed
-        alert = dbc.Alert(f"Warning: Too many cells selected. Downsampling to maximum {max_cells} cells.", color="warning", dismissable=True)
+        alert = dbc.Alert(f"Warning: Too many cells selected. Downsampling to maximum {max_cells} cells.", color="danger", dismissable=True)
 
     return list(selected_cells), alert
 # -------------------------------------------------------------------
