@@ -16,10 +16,12 @@ from flask_caching import Cache
 import settings
 from data_loader import load_seurat_rds
 from helpers import (
+    fetch_expression_subset,
     fetch_expression_subset_zscores,
     filter_from_metadata,
     generate_boxplot,
     generate_heatmap,
+    generate_violin,
     parse_upload,
     scan_files,
     validate_selected_cells,
@@ -296,31 +298,13 @@ def register_callbacks(app):
 
             elif plot_type == "violin" and len(selected_genes) <= settings.max_features:
                 """Generate violin plots for each selected gene. Either split by shape filter, or all in one stack."""
-                if not selected_genes:
-                    raise ValueError("For Violin plots please select one or more features.")
-                elif len(selected_genes) > settings.max_features:
-                    raise ValueError(f"For Violin plots please select no more than {settings.max_features} features.")
-
-                violin_df = (
-                    seurat_data["boxplot"]
-                    .loc[selected_cells, selected_genes]
-                    .melt(var_name="Gene", value_name="Expression")
+                violin_df = fetch_expression_subset( # Get gene count dataframe for selected genes and cells from the seurat data in cache
+                    seurat_data["seurat_handle"],
+                    genes=selected_genes,
+                    cells=selected_cells,
                 )
-                if barcodes_color is not None:
-                    color_for_plot = barcodes_color[selected_cells].to_list() * len(selected_genes)
-                else:
-                    color_for_plot = None
 
-                last_figure = px.violin(
-                    violin_df,
-                    x="Gene",
-                    y="Expression",
-                    color=color_for_plot,
-                    labels={shape_column: shape_column, "value": "Expression"},
-                    box=True,
-                    points="all",
-                    title="Violin Plot",
-                )
+                last_figure = generate_violin(violin_df, selected_genes, selected_cells, shape_column, barcodes_color)
                 if len(selected_genes) <= 50:
                     plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
