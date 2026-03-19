@@ -232,17 +232,17 @@ def parse_upload(contents: str, filename: str):
 
 # -------------------------------------------------------------------
 # Ensure that selected cells are in the current data, and that the resulting matrix isn't too large to handle
-def validate_selected_cells(selected_cells: list[str], all_cells: list[str], max_cells: int = settings.max_cells) -> list[str]:
+def validate_selected_cells(selected_cells: list[str], all_cells: list[str], max_cells: int = settings.max_cells) -> tuple[list[str], dbc.Alert | None]:
     # Check if all selected cells are in the current data
     if not all(cell in all_cells for cell in selected_cells):
-        raise ValueError("Some selected cells are not in the current data.")
+        raise ValueError("Some selected cells are not in the current data!")
 
     # Check if the number of selected cells is within the limit
+    alert = None
     if len(selected_cells) > max_cells:
         selected_cells = selected_cells[:max_cells]  # Trim the list to the max allowed
-        print(f"Warning: Too many cells selected. Trimming to {max_cells}.")
-        dbc.Alert(f"Warning: Too many cells selected. Downsampling to maximum {max_cells} cells.", color="warning", dismissable=True)
-        raise ValueError(f"Too many cells selected. Maximum allowed is {max_cells}.") # Actually need this guy to return a warning to the user...
+        alert = dbc.Alert(f"Warning: Too many cells selected. Downsampling to maximum {max_cells} cells.", color="warning", dismissable=True)
+#        raise ValueError(f"Too many cells selected. Maximum allowed is {max_cells}.") # Actually need this guy to return a warning to the user...
 
-    return list(selected_cells)
+    return list(selected_cells), alert
 # -------------------------------------------------------------------
