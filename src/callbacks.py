@@ -261,7 +261,7 @@ def register_callbacks(app):
             )
 
         try:
-            selected_cells = cell_index["index"]  # Get filtered cell/barcodes indices from cache
+            selected_cells = cell_index["cells"]  # Get filtered cell/barcodes indices from cache
             barcodes_color = cell_index["color"]  # Get colors matching index from cache
             barcodes_shape = cell_index["shape"]  # Get shapes matching index from cache
             if plot_type == "boxplot":
@@ -304,18 +304,16 @@ def register_callbacks(app):
                     genes=selected_genes,
                     cells=selected_cells,
                 )
-
                 last_figure = generate_violin(violin_df, selected_genes, selected_cells, shape_column, barcodes_color)
-                if len(selected_genes) <= 50:
-                    plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
+                plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
             elif plot_type == "heatmap":
 #                selected_genes = selected_genes or seurat_data["heatmap"].index.tolist()  # Default to all genes
-                cells = validate_selected_cells(selected_cells, all_cells=seurat_data["cells"], max_cells=settings.max_cells)  # Validate number of selected cells against limit
+                validated_cells = validate_selected_cells(selected_cells, all_cells=seurat_data["cells"], max_cells=settings.max_cells)  # Validate number of selected cells against limit
                 heatmap_df = fetch_expression_subset_zscores( # Get gene count dataframe for selected genes and cells from the seurat data in cache
                     seurat_data["seurat_handle"],
                     genes=selected_genes,
-                    cells=cells,
+                    cells=validated_cells,
                 )
                 last_figure = generate_heatmap(heatmap_df)  # Generate heatmap (side-effect of setting global last_figure for export)
                 plot_figures.append(
@@ -326,7 +324,6 @@ def register_callbacks(app):
                 raise ValueError("Something went wrong?")
 
         except ValueError as e:
-            import traceback
             print(traceback.format_exc())
             return plot_figures, dbc.Alert(f"Error: {e}", color="danger", dismissable=True)
         except TypeError as e:
@@ -408,7 +405,7 @@ def register_offcanvas_callbacks(app, cache):
         Input("dataset-key", "data"),
         Input("filter-schema-store", "data"),
     )
-    def update_barcode_selection(filters_cells, filters_ids, color_column, shape_column, dataset_key, schema):
+    def update_cell_selection(filters_cells, filters_ids, color_column, shape_column, dataset_key, schema):
         try:
             metadata_df = cache.get(dataset_key)["metadata"]  # Get metadata data from seurat data in the cache.
             selected_cells = metadata_df.index  # Default to all cell types
@@ -431,7 +428,7 @@ def register_offcanvas_callbacks(app, cache):
 
         selection_id = str(uuid.uuid4())  # generate a random ID for the selection we're about to store
         cache.set(
-            selection_id, {"index": selected_cells, "color": color_barcodes, "shape": shape_barcodes}, timeout=None
+            selection_id, {"cells": list(selected_cells), "color": color_barcodes, "shape": shape_barcodes}, timeout=None
         )  # store it in the cache, timeout=None or 0 => use default (=> no expiry)
         # TODO: I'm guessing we may have a memory leak here if the user keeps changing selections a lot?
         # Every time we create a new selection_id we store it in the cache, but never delete old ones.
