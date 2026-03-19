@@ -14,5 +14,5 @@ DATASCOPE_TOKEN = os.environ.get("DATASCOPE_TOKEN", secrets.token_hex(32))  # 64
 RDS_ALLOWED_EXT = {".rds", ".rda", ".rdata"}  # Allowed file extensions
 CACHE_DEFAULT_TIMEOUT = 12 * 60 * 60  # Cache timeout in seconds
 
-max_features = 60  # Maximum number of features to plot at once
+max_features = 60  # Maximum number of features to plot axis tickmarks for at once
 max_cells = 10000  # Maximum number of cells to allow for plotting (to prevent performance issues)
