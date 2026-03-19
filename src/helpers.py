@@ -156,3 +156,19 @@ def parse_upload(contents: str, filename: str):
 #    raise ValueError(f"Unsupported file type: {filename}")
     raise ValueError(f"Config: {yaml.safe_load(raw.decode('utf-8'))}")
 # -------------------------------------------------------------------
+
+
+# -------------------------------------------------------------------
+# Ensure that selected cells are in the current data, and that the resulting matrix isn't too large to handle
+def validate_selected_cells(selected_cells: list[str], all_cells: list[str], max_cells: int = 10000):
+    # Check if all selected cells are in the current data
+    if not all(cell in all_cells for cell in selected_cells):
+        raise ValueError("Some selected cells are not in the current data.")
+
+    # Check if the number of selected cells is within the limit
+    if len(selected_cells) > max_cells:
+        selected_cells = list(selected_cells[:max_cells])  # Trim the list to the max allowed
+        raise ValueError(f"Too many cells selected. Maximum allowed is {max_cells}.") # Actually need this guy to return a warning to the user...
+
+    return selected_cells
+# -------------------------------------------------------------------
