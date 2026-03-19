@@ -22,6 +22,7 @@ from helpers import (
     generate_heatmap,
     parse_upload,
     scan_files,
+    validate_selected_cells,
 )
 from layout import make_filter_component
 
@@ -325,10 +326,11 @@ def register_callbacks(app):
 
             elif plot_type == "heatmap":
 #                selected_genes = selected_genes or seurat_data["heatmap"].index.tolist()  # Default to all genes
+                cells = validate_selected_cells(selected_cells, all_cells=seurat_data["cells"], max_cells=settings.max_cells)  # Validate number of selected cells against limit
                 heatmap_df = fetch_expression_subset_zscores( # Get gene count dataframe for selected genes and cells from the seurat data in cache
                     seurat_data["seurat_handle"],
                     genes=selected_genes,
-                    cells=list(selected_cells),
+                    cells=cells,
                 )
                 last_figure = generate_heatmap(heatmap_df)  # Generate heatmap (side-effect of setting global last_figure for export)
                 plot_figures.append(
