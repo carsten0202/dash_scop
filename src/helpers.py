@@ -14,12 +14,12 @@ import settings
 
 
 # -------------------------------------------------------------------
-# Helper to fetch expression subset for given genes and cells
-def fetch_expression_subset_zscores(
+# Underlying function to fetch expression subset for given genes and cells
+def _expression_subset(
     seurat_handle: str,
     genes: list[str] | None = None,
     cells: list[str] | None = None,
-) -> pd.DataFrame:
+):
     with localconverter(ro.default_converter + pandas2ri.converter):
         r_genes = ro.StrVector(genes) if genes else ro.NULL
         r_cells = ro.StrVector(cells) if cells else ro.NULL
@@ -28,6 +28,31 @@ def fetch_expression_subset_zscores(
     values = res[0]
     rownames = list(res[1])
     colnames = list(res[2])
+
+    return (values, rownames, colnames)
+# -------------------------------------------------------------------
+
+# -------------------------------------------------------------------
+# Helper to fetch expression subset for given genes and cells
+def fetch_expression_subset(
+    seurat_handle: str,
+    genes: list[str] | None = None,
+    cells: list[str] | None = None,
+) -> pd.DataFrame:
+    (values, rownames, colnames) = _expression_subset(seurat_handle, genes, cells)
+
+    return pd.DataFrame(values, index=rownames, columns=colnames)
+# -------------------------------------------------------------------
+
+
+# -------------------------------------------------------------------
+# Helper to fetch expression subset for given genes and cells, returning z-scores
+def fetch_expression_subset_zscores(
+    seurat_handle: str,
+    genes: list[str] | None = None,
+    cells: list[str] | None = None,
+) -> pd.DataFrame:
+    (values, rownames, colnames) = _expression_subset(seurat_handle, genes, cells)
 
     # Calculat z-scores across cells for each gene using numpy for efficiency
     means = values.mean(axis=1, keepdims=True)
@@ -115,6 +140,36 @@ def generate_heatmap(heatmap_df):
         heatmap_figure.update_xaxes(showticklabels=False)
 
     return heatmap_figure
+# -------------------------------------------------------------------
+
+# -------------------------------------------------------------------
+# Helper to generate a violin plot figure
+def generate_violin(violin_df, genes, cells, shape_column, cells_color):
+    """Generate a violin plot figure."""
+
+    if not genes:
+        raise ValueError("For Violin plots please select one or more features.")
+    elif len(genes) > settings.max_features:
+        raise ValueError(f"For Violin plots please select no more than {settings.max_features} features.")
+
+    if cells_color is not None:
+        color = cells_color[cells].to_list() * len(genes)
+    else:
+        color = None
+
+#   .melt(var_name="Gene", value_name="Expression") ???
+
+    violin_figure = px.violin(
+        violin_df,
+        x="Gene",
+        y="Expression",
+        color=color,
+        labels={shape_column: shape_column, "value": "Expression"},
+        box=True,
+        points="all",
+        title="Violin Plot",
+    )
+    return violin_figure
 # -------------------------------------------------------------------
 
 
