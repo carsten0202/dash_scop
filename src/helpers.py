@@ -15,7 +15,7 @@ import settings
 
 # -------------------------------------------------------------------
 # Helper to fetch expression subset for given genes and cells
-def fetch_expression_subset(
+def fetch_expression_subset_zscores(
     seurat_handle: str,
     genes: list[str] | None = None,
     cells: list[str] | None = None,
@@ -28,6 +28,13 @@ def fetch_expression_subset(
     values = res[0]
     rownames = list(res[1])
     colnames = list(res[2])
+
+    # Calculat z-scores across cells for each gene using numpy for efficiency
+    means = values.mean(axis=1, keepdims=True)
+    stds = values.std(axis=1, keepdims=True)
+    stds[stds == 0] = 1.0
+    values = (values - means) / stds
+
     return pd.DataFrame(values, index=rownames, columns=colnames)
 # -------------------------------------------------------------------
 
@@ -89,11 +96,7 @@ def generate_boxplot(boxplot_df, selected_barcodes, shape_column, gene, barcodes
 
 # -------------------------------------------------------------------
 # Helper to generate a heatmap figure
-def generate_heatmap(matrix_df):
-    means = matrix_df.mean(axis=1)
-    stds = matrix_df.std(axis=1)
-    heatmap_df = matrix_df.sub(means, axis=0).div(stds, axis=0)
-
+def generate_heatmap(heatmap_df):
     heatmap_figure = px.imshow(
         heatmap_df,
         color_continuous_scale="Viridis",
