@@ -259,7 +259,6 @@ def register_callbacks(app):
     @app.callback(
         Output("plot-container", "children"),
         Output("error-message", "children"),
-        Output("info-message", "children"),
         Input("plot-selector", "value"),
         Input("gene-selector", "value"),
         Input("cell-index-key", "data"),
@@ -271,7 +270,6 @@ def register_callbacks(app):
         global last_figure  # Store last figure for export
         plot_figures = []
         alert = None
-        error = None
 
         # TODO: The wrapping for plots is partially broken for vertical resizing of the window.
         # TODO: Fix the download of plots (currently downloads last one, not all)
