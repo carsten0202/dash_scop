@@ -70,7 +70,7 @@ def register_callbacks(app):
         Output("dataset-key", "data"),
         Output("filter-schema-store", "data"),
         Output("plot-selector", "disabled"),
-        Output("message-info", "children"),
+        Output("info-message", "children"),
         Input("file-dropdown", "value"),
         prevent_initial_call=True,
     )
@@ -259,6 +259,7 @@ def register_callbacks(app):
     @app.callback(
         Output("plot-container", "children"),
         Output("error-message", "children"),
+        Output("info-message", "children"),
         Input("plot-selector", "value"),
         Input("gene-selector", "value"),
         Input("cell-index-key", "data"),
