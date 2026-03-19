@@ -15,6 +15,6 @@ RDS_ALLOWED_EXT = {".rds", ".rda", ".rdata"}  # Allowed file extensions
 CACHE_DEFAULT_TIMEOUT = 12 * 60 * 60  # Cache timeout in seconds
 
 max_features = 60  # Maximum number of features to plot at once (in violin plots, etc.)
-max_ticks_x = 100  # Maximum number of ticks to show on x-axis (e.g. for heatmap plots with many categories)
-max_ticks_y = 50  # Maximum number of ticks to show on y-axis (e.g. for heatmap plots with many genes)
-max_cells = 10000  # Maximum number of cells to allow for plotting (to prevent performance issues)
+max_ticks_x  = 100  # Maximum number of ticks to show on x-axis (e.g. for heatmap plots with many categories)
+max_ticks_y  = 50  # Maximum number of ticks to show on y-axis (e.g. for heatmap plots with many genes)
+max_cells    = 10000  # Maximum number of cells to allow for plotting (to prevent performance issues)
