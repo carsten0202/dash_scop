@@ -157,10 +157,8 @@ def generate_violin(violin_df, genes, cells, shape_column, cells_color):
     else:
         color = None
 
-#   .melt(var_name="Gene", value_name="Expression") ???
-
     violin_figure = px.violin(
-        violin_df,
+        violin_df.transpose().melt(var_name="Gene", value_name="Expression"),
         x="Gene",
         y="Expression",
         color=color,
