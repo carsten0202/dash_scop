@@ -123,9 +123,6 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
 
     with localconverter(ro.default_converter + pandas2ri.converter):
         registry = ro.r["register_seurat_matrix"](str(file_path), assay, layer) # type: ignore
-        print(f"{type(registry)}")
-        print(f"{list(registry.names())}")
-        print(f"{list(registry.__dir__())}")
 
         handle = str(registry.getbyname("handle")[0])
         metadata_df = _optimize_metadata_dtypes(registry.getbyname("metadata"))
