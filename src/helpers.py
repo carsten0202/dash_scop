@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 
+import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.express as px
 import rpy2.robjects as ro
@@ -134,9 +135,9 @@ def generate_heatmap(heatmap_df):
     )
 
     # Don't show labels if there's too many
-    if len(heatmap_df.columns) > settings.max_features:
+    if len(heatmap_df.columns) > settings.max_ticks_y:
         heatmap_figure.update_yaxes(showticklabels=False)
-    if len(heatmap_df.index.tolist()) > 2 * settings.max_features:
+    if len(heatmap_df.index.tolist()) > settings.max_ticks_x:
         heatmap_figure.update_xaxes(showticklabels=False)
 
     return heatmap_figure
@@ -153,11 +154,6 @@ def generate_umap(umap_df, color, shape):
         symbol=shape,
         title="UMAP Scatterplot",
     )
-
-    # If barcodes_color is provided, update marker colors accordingly
-#    if barcodes_color is not None and color_column in umap_df.columns:
-#        umap_figure.update_traces(marker=dict(color=barcodes_color[umap_df.index].tolist()))
-
     return umap_figure
 # -------------------------------------------------------------------
 
@@ -236,7 +232,7 @@ def parse_upload(contents: str, filename: str):
 
 # -------------------------------------------------------------------
 # Ensure that selected cells are in the current data, and that the resulting matrix isn't too large to handle
-def validate_selected_cells(selected_cells: list[str], all_cells: list[str], max_cells: int = 10000):
+def validate_selected_cells(selected_cells: list[str], all_cells: list[str], max_cells: int = settings.max_cells) -> list[str]:
     # Check if all selected cells are in the current data
     if not all(cell in all_cells for cell in selected_cells):
         raise ValueError("Some selected cells are not in the current data.")
@@ -245,6 +241,7 @@ def validate_selected_cells(selected_cells: list[str], all_cells: list[str], max
     if len(selected_cells) > max_cells:
         selected_cells = selected_cells[:max_cells]  # Trim the list to the max allowed
         print(f"Warning: Too many cells selected. Trimming to {max_cells}.")
+        dbc.Alert(f"Warning: Too many cells selected. Maximum allowed is {max_cells}.", color="warning", dismissable=True)
         raise ValueError(f"Too many cells selected. Maximum allowed is {max_cells}.") # Actually need this guy to return a warning to the user...
 
     return list(selected_cells)
