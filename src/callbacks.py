@@ -315,7 +315,7 @@ def register_callbacks(app):
                     )
                 )
 
-            elif plot_type == "violin" and len(selected_genes) <= settings.max_features:
+            elif plot_type == "violin":
                 """Generate violin plots for each selected gene. Either split by shape filter, or all in one stack."""
                 violin_df = fetch_expression_subset( # Get gene count dataframe for selected genes and cells from the seurat data in cache
                     seurat_data["seurat_handle"],
