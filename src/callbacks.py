@@ -395,7 +395,7 @@ def register_offcanvas_callbacks(app, cache):
         :param selected_genes: Description
         """
         try:
-            gene_names = cache.get(dataset_key)["gene_names"]
+            gene_names = cache.get(dataset_key)["genes"]
             gene_options = [{"label": gene, "value": gene} for gene in gene_names]
         except TypeError:
             return no_update, no_update
