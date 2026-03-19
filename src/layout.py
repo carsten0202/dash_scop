@@ -65,7 +65,7 @@ def get_layout(config_data):
                         "gap": "0.5rem",  # spacing between elements
                     },
                 ),
-                html.Div(id="selected-info", className="mt-3"),
+                html.Div(id="info-message", className="mt-3"),
                 dcc.Interval(id="init", interval=50, n_intervals=0, max_intervals=1),  # populate once on load
             ],
         ),
