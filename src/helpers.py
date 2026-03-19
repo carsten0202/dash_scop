@@ -143,6 +143,28 @@ def generate_heatmap(heatmap_df):
 # -------------------------------------------------------------------
 
 # -------------------------------------------------------------------
+def generate_umap(umap_df, color_column, shape_column, barcodes_color):
+    """Generate a UMAP scatterplot figure."""
+    umap_figure = px.scatter(
+        umap_df,
+        x="UMAP1",
+        y="UMAP2",
+        color=barcodes_color,
+#        color=color_column if color_column in umap_df.columns else None,
+        symbol=shape_column if shape_column in umap_df.columns else None,
+        labels={"color": color_column, "symbol": shape_column},
+        title="UMAP Scatterplot",
+    )
+
+    # If barcodes_color is provided, update marker colors accordingly
+#    if barcodes_color is not None and color_column in umap_df.columns:
+#        umap_figure.update_traces(marker=dict(color=barcodes_color[umap_df.index].tolist()))
+
+    return umap_figure
+# -------------------------------------------------------------------
+
+
+# -------------------------------------------------------------------
 # Helper to generate a violin plot figure
 def generate_violin(violin_df, genes, cells, shape_column, cells_color):
     """Generate a violin plot figure."""
