@@ -129,20 +129,17 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
 
         handle = str(registry.getbyname("handle")[0])
         metadata_df = _optimize_metadata_dtypes(registry.getbyname("metadata"))
-
         umap_df = registry.getbyname("umap")
         umap_df.columns = umap_df.columns.str.upper()
+        genes = list(registry.getbyname("genes"))
+        cells = list(registry.getbyname("cells"))
 
-        mat = ro.r["get_expression_subset_matrix"](handle, registry.getbyname("genes")[1:7], registry.getbyname("cells")[1:7]) # type: ignore
-        print(f"Loaded Seurat object from {file_path} with handle {handle}. Metadata shape: {metadata_df.shape}, UMAP shape: {umap_df.shape}")
-        print(f'Data Bit: {registry.getbyname("cells")[1:7]}')
-        print(f'Meta Matrix: {metadata_df}')
-        print(f"Data Matrix: {mat[0]}\nMatrix Shape: {mat[0].shape}")
+    print(f"Loaded Seurat object from {file_path} with handle {handle}. Metadata shape: {metadata_df.shape}, UMAP shape: {umap_df.shape}")
 
     return {
         "seurat_handle": handle,
-        "genes": list(registry.getbyname("genes")),
-        "cells": list(registry.getbyname("cells")),
+        "genes": genes,
+        "cells": cells,
         "metadata": metadata_df,
         "umap": umap_df,
     }
