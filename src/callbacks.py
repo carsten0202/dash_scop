@@ -42,57 +42,30 @@ def register_callbacks(app):
     cache.init_app(app.server)
 
     @app.callback(
-        Output("file-list", "data"),
-        Input("rescan", "n_clicks"),
-        Input("init", "n_intervals"),
+        Output("download-plot", "data"),
+        Input("download-svg-btn", "n_clicks"),
         prevent_initial_call=True,
     )
-    def refresh_file_list(_clicks, _init):
-        """
-        Triggers when the 'rescan' button is clicked to refresh the list of available files in the data directory.
-        Also triggers on app initialization to populate the file list on startup.
-        
-        :param _clicks: Description
-        :param _init: Description
-        """
-        base_dir = Path(os.getenv("DATASCOPE_RDS_PATH", settings.DEFAULT_RDS_PATH))
-        files = scan_files(base_dir)
-        # maybe include simple metadata (mtime, size)?
-        enriched = []
-        for rel in files:
-            p = (base_dir / rel).resolve()
-            st = p.stat()
-            enriched.append(
-                {
-                    "rel": rel,
-                    "size": st.st_size,
-                    "mtime": int(st.st_mtime),
-                }
-            )
-        return enriched
+    def download_plot(n_clicks):
+        global last_figure
+        if last_figure is None:
+            return None
 
-    @app.callback(
-        Output("file-dropdown", "options"),
-        Input("file-list", "data"),
-        Input("show-subfolders", "value"),
-    )
-    def populate_dropdown(file_list, show_flags):
-        """
-        Populate the file dropdown options based on the scanned file list and the "show subfolders" flag.
-        If "show subfolders" is enabled, show full relative paths; otherwise, show only filenames.
-        
-        :param file_list: Description
-        :param show_flags: Description
-        """
-        if not file_list:
-            return []
-        show_sub = "sub" in (show_flags or [])
-        opts = []
-        for item in file_list:
-            rel = item["rel"]
-            label = rel if show_sub else Path(rel).name
-            opts.append({"label": label, "value": rel})
-        return opts
+        fig = last_figure
+        fig.update_layout(
+            template=None,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+        )
+
+        layout_dict = fig.to_dict().get("layout", {})
+        title_text = layout_dict.get("title", {}).get("text", "plot")
+        title = str(title_text).strip().replace(" ", "_")
+        ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+        filename = f"{title}_{ts}.svg"
+
+        svg_bytes = pio.to_image(fig, format="svg")
+        return dcc.send_bytes(svg_bytes, filename=filename)
 
     @app.callback(
         Output("dataset-key", "data"),
@@ -144,6 +117,58 @@ def register_callbacks(app):
         except Exception as e:
             return dataset_key, {}, True, dbc.Alert(f"Failed to load: {e}", color="danger", dismissable=True)
 
+    @app.callback(
+        Output("file-list", "data"),
+        Input("rescan", "n_clicks"),
+        Input("init", "n_intervals"),
+        prevent_initial_call=True,
+    )
+    def refresh_file_list(_clicks, _init):
+        """
+        Triggers when the 'rescan' button is clicked to refresh the list of available files in the data directory.
+        Also triggers on app initialization to populate the file list on startup.
+        
+        :param _clicks: Description
+        :param _init: Description
+        """
+        base_dir = Path(os.getenv("DATASCOPE_RDS_PATH", settings.DEFAULT_RDS_PATH))
+        files = scan_files(base_dir)
+        # maybe include simple metadata (mtime, size)?
+        enriched = []
+        for rel in files:
+            p = (base_dir / rel).resolve()
+            st = p.stat()
+            enriched.append(
+                {
+                    "rel": rel,
+                    "size": st.st_size,
+                    "mtime": int(st.st_mtime),
+                }
+            )
+        return enriched
+
+    @app.callback(
+        Output("file-dropdown", "options"),
+        Input("file-list", "data"),
+        Input("show-subfolders", "value"),
+    )
+    def populate_dropdown(file_list, show_flags):
+        """
+        Populate the file dropdown options based on the scanned file list and the "show subfolders" flag.
+        If "show subfolders" is enabled, show full relative paths; otherwise, show only filenames.
+        
+        :param file_list: Description
+        :param show_flags: Description
+        """
+        if not file_list:
+            return []
+        show_sub = "sub" in (show_flags or [])
+        opts = []
+        for item in file_list:
+            rel = item["rel"]
+            label = rel if show_sub else Path(rel).name
+            opts.append({"label": label, "value": rel})
+        return opts
 
     @app.callback(
         Output("filter-left-offcanvas", "is_open"),
@@ -321,35 +346,10 @@ def register_callbacks(app):
             print(traceback.format_exc())
             return plot_figures, dbc.Alert(f"Error: {e}", color="danger", dismissable=True)
         except TypeError as e:
+            print(traceback.format_exc())
             return plot_figures, f"Error: {str(e)}"
 
         return plot_figures, ""
-
-    @app.callback(
-        Output("download-plot", "data"),
-        Input("download-svg-btn", "n_clicks"),
-        prevent_initial_call=True,
-    )
-    def download_plot(n_clicks):
-        global last_figure
-        if last_figure is None:
-            return None
-
-        fig = last_figure
-        fig.update_layout(
-            template=None,
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-        )
-
-        layout_dict = fig.to_dict().get("layout", {})
-        title_text = layout_dict.get("title", {}).get("text", "plot")
-        title = str(title_text).strip().replace(" ", "_")
-        ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-        filename = f"{title}_{ts}.svg"
-
-        svg_bytes = pio.to_image(fig, format="svg")
-        return dcc.send_bytes(svg_bytes, filename=filename)
 
     register_offcanvas_callbacks(app, cache)
 
