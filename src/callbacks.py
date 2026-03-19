@@ -7,7 +7,6 @@ from datetime import datetime
 from pathlib import Path
 
 import dash_bootstrap_components as dbc
-import plotly.express as px
 import plotly.io as pio
 import yaml
 from dash import ALL, Input, Output, State, ctx, dcc, html, no_update
