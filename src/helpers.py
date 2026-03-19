@@ -145,16 +145,12 @@ def generate_heatmap(heatmap_df):
 # -------------------------------------------------------------------
 def generate_umap(umap_df, color, shape):
     """Generate a UMAP scatterplot figure."""
-    print(type(color))
-    print(type(shape))
     umap_figure = px.scatter(
         umap_df,
         x="UMAP_1",
         y="UMAP_2",
         color=color,
-#        color=color_column if color_column in umap_df.columns else None,
-        symbol=shape if shape in umap_df.columns else None,
-        labels={"color": color, "symbol": shape},
+        symbol=shape,
         title="UMAP Scatterplot",
     )
 
