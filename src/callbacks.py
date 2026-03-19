@@ -283,7 +283,7 @@ def register_callbacks(app):
 
             elif plot_type == "umap":
                 umap_df = cache.get(dataset_key)["umap"]  # Get umap data from cache
-                last_figure = generate_umap(umap_df, color=barcodes_color, shape=shape_column)
+                last_figure = generate_umap(umap_df.loc[selected_cells], color=barcodes_color, shape=barcodes_shape)
                 plot_figures.append(
                     html.Div(
                         dcc.Graph(figure=last_figure, style={"height": "100%", "width": "100%"}),
