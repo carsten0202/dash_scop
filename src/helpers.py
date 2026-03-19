@@ -171,6 +171,7 @@ def validate_selected_cells(selected_cells: list[str], all_cells: list[str], max
     # Check if the number of selected cells is within the limit
     if len(selected_cells) > max_cells:
         selected_cells = list(selected_cells[:max_cells])  # Trim the list to the max allowed
+        print(f"Warning: Too many cells selected. Trimming to {max_cells}.")
         raise ValueError(f"Too many cells selected. Maximum allowed is {max_cells}.") # Actually need this guy to return a warning to the user...
 
     return selected_cells
