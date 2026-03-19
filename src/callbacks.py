@@ -291,22 +291,6 @@ def register_callbacks(app):
                     )
                 )
 
-
-                last_figure = px.scatter(
-                    umap_df.loc[selected_cells],
-                    x="UMAP_1",
-                    y="UMAP_2",
-                    color=barcodes_color,
-                    symbol=barcodes_shape,
-                    title="UMAP Scatterplot",
-                )
-                plot_figures.append(
-                    html.Div(
-                        dcc.Graph(figure=last_figure, style={"height": "100%", "width": "100%"}),
-                        style={"flex": "1 1 auto", "minHeight": 0, "minWidth": 0},
-                    )
-                )
-
             elif plot_type == "violin" and len(selected_genes) <= settings.max_features:
                 """Generate violin plots for each selected gene. Either split by shape filter, or all in one stack."""
                 violin_df = fetch_expression_subset( # Get gene count dataframe for selected genes and cells from the seurat data in cache
