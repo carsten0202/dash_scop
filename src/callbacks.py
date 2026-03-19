@@ -22,6 +22,7 @@ from helpers import (
     filter_from_metadata,
     generate_boxplot,
     generate_heatmap,
+    generate_umap,
     generate_violin,
     parse_upload,
     scan_files,
@@ -282,6 +283,15 @@ def register_callbacks(app):
 
             elif plot_type == "umap":
                 umap_df = cache.get(dataset_key)["umap"]  # Get umap data from cache
+                last_figure = generate_umap(umap_df, barcodes_color, shape_column, barcodes_color)
+                plot_figures.append(
+                    html.Div(
+                        dcc.Graph(figure=last_figure, style={"height": "100%", "width": "100%"}),
+                        style={"flex": "1 1 auto", "minHeight": 0, "minWidth": 0},
+                    )
+                )
+
+
                 last_figure = px.scatter(
                     umap_df.loc[selected_cells],
                     x="UMAP_1",
