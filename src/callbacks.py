@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+import traceback
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -325,6 +326,8 @@ def register_callbacks(app):
                 raise ValueError("Something went wrong?")
 
         except ValueError as e:
+            import traceback
+            print(traceback.format_exc())
             return plot_figures, dbc.Alert(f"Error: {e}", color="danger", dismissable=True)
         except TypeError as e:
             return plot_figures, f"Error: {str(e)}"
