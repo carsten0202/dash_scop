@@ -70,7 +70,7 @@ def register_callbacks(app):
         Output("dataset-key", "data"),
         Output("filter-schema-store", "data"),
         Output("plot-selector", "disabled"),
-        Output("selected-info", "children"),
+        Output("message-info", "children"),
         Input("file-dropdown", "value"),
         prevent_initial_call=True,
     )
@@ -269,6 +269,8 @@ def register_callbacks(app):
     def update_plots(plot_type, selected_genes, cell_index_key, shape_column, dataset_key):
         global last_figure  # Store last figure for export
         plot_figures = []
+        alert = None
+        error = None
 
         # TODO: The wrapping for plots is partially broken for vertical resizing of the window.
         # TODO: Fix the download of plots (currently downloads last one, not all)
@@ -326,7 +328,7 @@ def register_callbacks(app):
                 plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
             elif plot_type == "heatmap":
-                validated_cells = validate_selected_cells(selected_cells, all_cells=seurat_data["cells"])  # Validate number of selected cells against limit
+                (validated_cells, alert) = validate_selected_cells(selected_cells, all_cells=seurat_data["cells"])  # Validate number of selected cells against limit
                 heatmap_df = fetch_expression_subset_zscores( # Get gene count dataframe for selected genes and cells from the seurat data in cache
                     seurat_data["seurat_handle"],
                     genes=selected_genes,
@@ -347,7 +349,7 @@ def register_callbacks(app):
             print(traceback.format_exc())
             return plot_figures, f"Error: {str(e)}"
 
-        return plot_figures, ""
+        return plot_figures, alert
 
     register_offcanvas_callbacks(app, cache)
 
