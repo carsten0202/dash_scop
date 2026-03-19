@@ -327,7 +327,7 @@ def register_callbacks(app):
 
             elif plot_type == "heatmap":
 #                selected_genes = selected_genes or seurat_data["heatmap"].index.tolist()  # Default to all genes
-                validated_cells = validate_selected_cells(selected_cells, all_cells=seurat_data["cells"], max_cells=settings.max_cells)  # Validate number of selected cells against limit
+                validated_cells = validate_selected_cells(selected_cells, all_cells=seurat_data["cells"])  # Validate number of selected cells against limit
                 heatmap_df = fetch_expression_subset_zscores( # Get gene count dataframe for selected genes and cells from the seurat data in cache
                     seurat_data["seurat_handle"],
                     genes=selected_genes,
