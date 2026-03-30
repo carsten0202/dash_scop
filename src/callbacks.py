@@ -323,7 +323,8 @@ def register_callbacks(app):
                     genes=selected_genes,
                     cells=selected_cells,
                 )
-                last_figure = generate_violin(violin_df, selected_genes, selected_cells, shape_column, barcodes_color)
+                cell_metadata = seurat_data["metadata"].loc[selected_cells]
+                last_figure = generate_violin(violin_df, selected_genes, cell_metadata, shape_column)
                 plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
 
             elif plot_type == "heatmap":
