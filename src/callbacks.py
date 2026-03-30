@@ -10,7 +10,7 @@ import dash_bootstrap_components as dbc
 import plotly.io as pio
 import yaml
 from dash import ALL, Input, Output, State, ctx, dcc, html, no_update
-from dash.dcc.express import send_string
+from dash.dcc.express import send_bytes, send_string
 from flask_caching import Cache
 
 import settings
@@ -64,7 +64,7 @@ def register_callbacks(app):
         filename = f"{title}_{ts}.svg"
 
         svg_bytes = pio.to_image(fig, format="svg")
-        return dcc.send_bytes(svg_bytes, filename=filename)
+        return send_bytes(svg_bytes, filename=filename)
 
     @app.callback(
         Output("dataset-key", "data"),
@@ -296,9 +296,14 @@ def register_callbacks(app):
                     raise ValueError("For Boxplots please select one or more features.")
                 elif len(selected_genes) > settings.max_features:
                     raise ValueError(f"For Boxplots please select no more than {settings.max_features} features.")
-                boxplot_df = seurat_data["boxplot"]  # Get boxplot data from seurat data in cache
+                cell_metadata = seurat_data["metadata"].loc[selected_cells]
                 for gene in selected_genes:
-                    last_figure = generate_boxplot(boxplot_df, selected_cells, shape_column, gene, barcodes_color)
+                    expression_df = fetch_expression_subset(
+                        seurat_data["seurat_handle"],
+                        genes=[gene],
+                        cells=selected_cells,
+                    )
+                    last_figure = generate_boxplot(expression_df, cell_metadata, gene, shape_column)
                     plot_figures.append(
                         html.Div(
                             dcc.Graph(figure=last_figure),

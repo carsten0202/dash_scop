@@ -97,23 +97,30 @@ def filter_from_metadata(metadata_df):
 
 # -------------------------------------------------------------------
 # Helper to generate a boxplot figure
-def generate_boxplot(boxplot_df, selected_barcodes, shape_column, gene, barcodes_color):
-    """Generate a boxplot figure."""
-    if shape_column and shape_column in boxplot_df.columns:  # If shape column is specified and exists
+def generate_boxplot(expression_df, cell_metadata, gene, shape_column):
+    """Generate a boxplot figure lazily from expression data and metadata."""
+    plot_df = expression_df.transpose().copy()
+    plot_df.index.name = "Cell"
+    plot_df = plot_df.reset_index()
+
+    if shape_column and shape_column in cell_metadata.columns:
+        plot_df = plot_df.merge(cell_metadata[[shape_column]], left_on="Cell", right_index=True, how="left")
+
+    if shape_column and shape_column in plot_df.columns:
+        fig_df = plot_df[["Cell", shape_column, gene]]
         fig = px.box(
-            boxplot_df.loc[selected_barcodes, [shape_column, gene]],
+            fig_df,
             x=shape_column,
             y=gene,
-            color=barcodes_color[selected_barcodes] if barcodes_color is not None else None,
             labels={shape_column: shape_column, gene: "Expression"},
             title=f"Boxplot for {gene}",
         )
     else:
-        fig = px.box(  # If no shape column, plot all in one box
-            boxplot_df.loc[selected_barcodes, gene],
+        fig_df = plot_df[["Cell", gene]]
+        fig = px.box(
+            fig_df,
             y=gene,
             labels={gene: "Expression"},
-            color=barcodes_color[selected_barcodes] if barcodes_color is not None else None,
             title=f"Boxplot for {gene}",
         )
     return fig
