@@ -160,7 +160,7 @@ def generate_umap(umap_df, color, shape):
 
 # -------------------------------------------------------------------
 # Helper to generate a violin plot figure
-def generate_violin(violin_df, genes, cells, shape_column, cells_color):
+def generate_violin(violin_df, genes, cell_metadata, shape_column):
     """Generate a violin plot figure."""
 
     if not genes:
@@ -168,17 +168,25 @@ def generate_violin(violin_df, genes, cells, shape_column, cells_color):
     elif len(genes) > settings.max_features:
         raise ValueError(f"For Violin plots please select no more than {settings.max_features} features.")
 
-    if cells_color is not None:
-        color = cells_color[cells].to_list() * len(genes)
-    else:
-        color = None
+    plot_df = violin_df.transpose().copy()
+    plot_df.index.name = "Cell"
+    plot_df = plot_df.reset_index()
+
+    if shape_column and shape_column in cell_metadata.columns:
+        plot_df = plot_df.merge(cell_metadata[[shape_column]], left_on="Cell", right_index=True, how="left")
+
+    id_vars = ["Cell"]
+    if shape_column and shape_column in plot_df.columns:
+        id_vars.append(shape_column)
+
+    long_df = plot_df.melt(id_vars=id_vars, var_name="Gene", value_name="Expression")
 
     violin_figure = px.violin(
-        violin_df.transpose().melt(var_name="Gene", value_name="Expression"),
+        long_df,
         x="Gene",
         y="Expression",
-        color=color,
-        labels={shape_column: shape_column, "value": "Expression"},
+        color=shape_column if shape_column and shape_column in long_df.columns else None,
+        labels={"Expression": "Expression"},
         box=True,
         points="all",
         title="Violin Plot",
