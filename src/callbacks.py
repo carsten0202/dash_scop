@@ -279,7 +279,6 @@ def register_callbacks(app):
         plot_figures = []
         alert = None
 
-        # TODO: The wrapping for plots is partially broken for vertical resizing of the window.
         # TODO: Fix the download of plots (currently downloads last one, not all)
         # TODO: Review the current YAML / JSON Scheme for config files. Could be more logical.
 
