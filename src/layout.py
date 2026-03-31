@@ -4,6 +4,15 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 
+FILTER_GRID_STYLE = {
+    "display": "grid",
+    "gridTemplateColumns": "minmax(0, 1fr) 2rem 2rem",
+    "columnGap": "0.5rem",
+    "rowGap": "0.25rem",
+    "alignItems": "center",
+}
+
+
 # -------------------------------------------------------------------
 # Main layout function
 def get_layout(config_data):
@@ -206,31 +215,28 @@ def make_filter_component(f):
         return html.Div(
             [
                 html.Label(f["label"]),
-                dbc.Row(
+                html.Div(
                     [
-                        dbc.Col(
-                            dcc.Dropdown(
-                                id=filter_id,
-                                options=[{"label": v, "value": v} for v in f["values"]],
-                                multi=True,
-                                value=f.get("default", []),
-                                placeholder=f"Select {f['label'].lower()}",
-                            ),
-                            xs=9,
+                        dcc.Dropdown(
+                            id=filter_id,
+                            options=[{"label": v, "value": v} for v in f["values"]],
+                            multi=True,
+                            value=f.get("default", []),
+                            placeholder=f"Select {f['label'].lower()}",
                         ),
-                        dbc.Col(
+                        html.Div(
                             dcc.Checklist(id=color_id, options=[{"label": "", "value": f["name"]}], value=[]),
-                            xs=1,
+                            style={"justifySelf": "center"},
                         ),
-                        dbc.Col(
+                        html.Div(
                             dcc.Checklist(id=shape_id, options=[{"label": "", "value": f["name"]}], value=[]),
-                            xs=1,
+                            style={"justifySelf": "center"},
                         ),
-                        dbc.Col([], xs=1),  # Empty cell for spacing
-                    ]
+                    ],
+                    style=FILTER_GRID_STYLE,
                 ),
             ],
-            style={"marginBottom": "1rem", "alignItems": "right"},
+            style={"marginBottom": "1rem"},
         )
 
     if f["type"] == "numeric_range":

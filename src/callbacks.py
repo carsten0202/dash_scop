@@ -27,7 +27,7 @@ from helpers import (
     scan_files,
     validate_selected_cells,
 )
-from layout import make_filter_component
+from layout import FILTER_GRID_STYLE, make_filter_component
 
 # Store the last generated figure
 last_figure = None
@@ -196,19 +196,27 @@ def register_callbacks(app):
     def build_barcode_filter_components(schema):
         if not schema:
             return html.Div("No filters defined.")
-        headline = dbc.Row(
+        headline = html.Div(
             [
-                dbc.Col([], xs=9),  # Empty cell for spacing
-                dbc.Col(
-                    html.Div("Color", style={"transform": "rotate(45deg)", "display": "inline-block"}),
-                    xs=1,
+                html.Div(),
+                html.Div(
+                    "Color",
+                    style={
+                        "transform": "rotate(45deg)",
+                        "display": "inline-block",
+                        "justifySelf": "center",
+                    },
                 ),
-                dbc.Col(
-                    html.Div("Shape", style={"transform": "rotate(45deg)", "display": "inline-block"}),
-                    xs=1,
+                html.Div(
+                    "Shape",
+                    style={
+                        "transform": "rotate(45deg)",
+                        "display": "inline-block",
+                        "justifySelf": "center",
+                    },
                 ),
-                dbc.Col([], xs=1),  # Empty cell for spacing
-            ]
+            ],
+            style=FILTER_GRID_STYLE,
         )
         return [headline] + [make_filter_component(f) for f in schema]
 
