@@ -18,79 +18,106 @@ def get_layout(config_data):
         html.Div(
             id="file-controls",
             children=[
-                html.H1("DataSCOPe: Visualization of Data from Single-Cell Omics Projects"),
-                dbc.Col(
+                html.H1(
+                    "DataSCOPe: Visualization of Data from Single-Cell Omics Projects",
+                    style={"marginBottom": "0.75rem"},
+                ),
+                html.Div(
                     [
-                        dbc.Button("Rescan", id="rescan", n_clicks=0, color="primary"),
-                        dbc.Checklist(
-                            options=[{"label": "Subfolders", "value": "sub"}],
-                            value=["sub"],
-                            id="show-subfolders",
-                            switch=True,
+                        html.Div(
+                            [
+                                html.Label("Data source:", style={"marginBottom": 0, "fontWeight": 600}),
+                                dbc.Button("Rescan", id="rescan", n_clicks=0, color="primary"),
+                                dbc.Checklist(
+                                    options=[{"label": "Subfolders", "value": "sub"}],
+                                    value=["sub"],
+                                    id="show-subfolders",
+                                    switch=True,
+                                ),
+                                dcc.Dropdown(
+                                    id="file-dropdown",
+                                    options=[],  # filled by callback
+                                    placeholder=f"Browse {os.getenv('DASH_RDS_PATH', os.getcwd())}…",
+                                    searchable=True,
+                                    clearable=False,
+                                    style={"flex": "1 1 560px", "minWidth": "420px"},
+                                ),
+                                dcc.Download(id="download-config"),  # download target
+                                dcc.Upload(
+                                    id="upload-config",
+                                    children=dbc.Button(
+                                        "Upload filters", id="upload-config-btn", n_clicks=0, color="primary"
+                                    ),
+                                    multiple=False,  # single file
+                                ),
+                                dbc.Button("Save filters", id="save-config-btn", n_clicks=0, color="primary"),
+                            ],
+                            style={
+                                "display": "flex",
+                                "alignItems": "center",
+                                "gap": "0.75rem",
+                                "flexWrap": "wrap",
+                            },
                         ),
-                        dcc.Dropdown(
-                            id="file-dropdown",
-                            options=[],  # filled by callback
-                            placeholder=f"Browse {os.getenv('DASH_RDS_PATH', os.getcwd())}…",
-                            searchable=True,
-                            clearable=False,
-                            style={"flex": "1"},
-                        ),
-
-                        dcc.Download(id="download-config"), # download target
-
-                        dcc.Upload(
-                            id="upload-config",
-                            children=dbc.Button("Upload filters", id="upload-config-btn", n_clicks=0, color="primary"),
-                            multiple=False,  # single file
-                        ),
-                        dbc.Button("Save filters", id="save-config-btn", n_clicks=0, color="primary"),
-                        dbc.Tooltip(
-                            "Upload a YAML/JSON config or a plain gene list (.txt). "
-                            "This will replace the current filters and selected genes.",
-                            target="upload-config-btn",
-                            placement="right",
-                        ),
-                        dbc.Tooltip(
-                            "Export YAML file with current filter selection.",
-                            target="save-config-btn",
-                            placement="right",
-                        ),
-
+                        html.Div(id="info-message", className="mt-2"),
                     ],
                     style={
-                        "display": "flex",
-                        "flexDirection": "row",  # horizontal stacking
-                        "alignItems": "center",  # vertical alignment
-                        "gap": "0.5rem",  # spacing between elements
+                        "padding": "0.75rem 1rem",
+                        "borderRadius": "0.75rem",
+                        "background": "rgba(255,255,255,0.6)",
+                        "backdropFilter": "blur(6px)",
+                        "marginBottom": "0.5rem",
+                        "position": "relative",
+                        "zIndex": 20,
                     },
                 ),
-                html.Div(id="info-message", className="mt-3"),
                 dcc.Interval(id="init", interval=50, n_intervals=0, max_intervals=1),  # populate once on load
             ],
         ),
         # Dropdown for selecting the plot type
-        html.Label("Select a plot type:"),
-        dcc.Dropdown(
-            id="plot-selector",
-            options=[
-                {"label": "Boxplot", "value": "boxplot"},
-                {"label": "UMAP Scatterplot", "value": "umap"},
-                {"label": "Violin Plot", "value": "violin"},
-                {"label": "Heatmap", "value": "heatmap"},
-            ],
-            value="umap",  # Default selection
-            clearable=False,  # Should never be empty. You must select one, or let the default ride.
-            disabled=True,  # Enable after file load
-        ),
-        # Download button and filter components
-        dbc.Row(
+        html.Div(
             [
-                dbc.Col(dbc.Button("Gene Filter Panel", id="open-left-offcanvas", n_clicks=0, color="primary"), width=2),
-                dbc.Col(dbc.Button("Export Plot SVG", id="download-svg-btn", n_clicks=0, color="primary"), width=2,),
-                dbc.Col(dbc.Button("Barcode Filter Panel", id="open-right-offcanvas", n_clicks=0, color="primary"), width=2),
+                html.Div(
+                    [
+                        html.Label("Select a plot type:", style={"marginBottom": 0, "fontWeight": 600}),
+                        dcc.Dropdown(
+                            id="plot-selector",
+                            options=[
+                                {"label": "Boxplot", "value": "boxplot"},
+                                {"label": "UMAP Scatterplot", "value": "umap"},
+                                {"label": "Violin Plot", "value": "violin"},
+                                {"label": "Heatmap", "value": "heatmap"},
+                            ],
+                            value="umap",  # Default selection
+                            clearable=False,  # Should never be empty. You must select one, or let the default ride.
+                            disabled=True,  # Enable after file load
+                            style={"flex": "1 1 420px", "minWidth": "280px", "maxWidth": "520px"},
+                        ),
+                    ],
+                    style={"display": "flex", "alignItems": "center", "gap": "0.75rem", "flex": "1 1 520px", "minWidth": "340px"},
+                ),
+                html.Div(
+                    [
+                        dbc.Button("Gene Filter Panel", id="open-left-offcanvas", n_clicks=0, color="primary"),
+                        dbc.Button("Export Plot SVG", id="download-svg-btn", n_clicks=0, color="primary"),
+                        dbc.Button("Barcode Filter Panel", id="open-right-offcanvas", n_clicks=0, color="primary"),
+                    ],
+                    style={"display": "flex", "alignItems": "center", "gap": "0.5rem", "flexWrap": "wrap", "justifyContent": "flex-end"},
+                ),
             ],
-            justify="center",
+            style={
+                "display": "flex",
+                "alignItems": "center",
+                "flexWrap": "wrap",
+                "gap": "0.75rem",
+                "padding": "0.5rem 0.75rem",
+                "borderRadius": "0.75rem",
+                "background": "rgba(255,255,255,0.6)",
+                "backdropFilter": "blur(6px)",
+                "marginBottom": "0.5rem",
+                "position": "relative",
+                "zIndex": 10,
+            },
         ),
         dcc.Download(id="download-plot"),
         html.Div(id="error-message", className="mt-3"),
@@ -165,8 +192,6 @@ def build_left(config_data):
         ],
     )
     return html_div
-
-
 # -------------------------------------------------------------------
 
 
@@ -227,6 +252,4 @@ def make_filter_component(f):
 
     # Fallback (you can add boolean, text, etc. later)
     return html.Div(f"Unsupported filter type: {f['type']}")
-
-
 # -------------------------------------------------------------------
