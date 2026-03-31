@@ -306,8 +306,18 @@ def register_callbacks(app):
                     last_figure = generate_boxplot(expression_df, cell_metadata, gene, shape_column)
                     plot_figures.append(
                         html.Div(
-                            dcc.Graph(figure=last_figure),
-                            style={"width": "49%", "height": "450px", "display": "inline-block"},
+                            dcc.Graph(
+                                figure=last_figure,
+                                style={"height": "100%", "width": "100%"},
+                                config={"responsive": True},
+                            ),
+                            style={
+                                "width": "49%",
+                                "height": "45vh",
+                                "minHeight": "350px",
+                                "flex": "0 0 auto",
+                                "display": "inline-block",
+                            },
                         )
                     )
 
@@ -316,8 +326,17 @@ def register_callbacks(app):
                 last_figure = generate_umap(umap_df.loc[selected_cells], color=barcodes_color, shape=barcodes_shape)
                 plot_figures.append(
                     html.Div(
-                        dcc.Graph(figure=last_figure, style={"height": "100%", "width": "100%"}),
-                        style={"flex": "1 1 auto", "minHeight": 0, "minWidth": 0},
+                        dcc.Graph(
+                            figure=last_figure,
+                            style={"height": "100%", "width": "100%"},
+                            config={"responsive": True},
+                        ),
+                        style={
+                            "width": "100%",
+                            "height": "70vh",
+                            "minHeight": "500px",
+                            "flex": "0 0 auto",
+                        },
                     )
                 )
 
@@ -330,7 +349,21 @@ def register_callbacks(app):
                 )
                 cell_metadata = seurat_data["metadata"].loc[selected_cells]
                 last_figure = generate_violin(violin_df, selected_genes, cell_metadata, shape_column)
-                plot_figures.append(html.Div(dcc.Graph(figure=last_figure), style={"width": "100%"}))
+                plot_figures.append(
+                    html.Div(
+                        dcc.Graph(
+                            figure=last_figure,
+                            style={"height": "100%", "width": "100%"},
+                            config={"responsive": True},
+                        ),
+                        style={
+                            "width": "100%",
+                            "height": "70vh",
+                            "minHeight": "500px",
+                            "flex": "0 0 auto",
+                        },
+                    )
+                )
 
             elif plot_type == "heatmap":
                 (validated_cells, alert) = validate_selected_cells(selected_cells, all_cells=seurat_data["cells"])  # Validate number of selected cells against limit
@@ -341,7 +374,19 @@ def register_callbacks(app):
                 )
                 last_figure = generate_heatmap(heatmap_df)  # Generate heatmap (side-effect of setting global last_figure for export)
                 plot_figures.append(
-                    html.Div(dcc.Graph(figure=last_figure), style={"flex": "1 1 auto", "minHeight": 0, "minWidth": 0})
+                    html.Div(
+                        dcc.Graph(
+                            figure=last_figure,
+                            style={"height": "100%", "width": "100%"},
+                            config={"responsive": True},
+                        ),
+                        style={
+                            "width": "100%",
+                            "height": "70vh",
+                            "minHeight": "500px",
+                            "flex": "0 0 auto",
+                        },
+                    )
                 )
 
             else:

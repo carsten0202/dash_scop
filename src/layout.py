@@ -21,7 +21,7 @@ def get_layout(config_data):
                 html.H1("DataSCOPe: Visualization of Data from Single-Cell Omics Projects"),
                 dbc.Col(
                     [
-                        dbc.Button("Rescan", id="rescan", n_clicks=0),
+                        dbc.Button("Rescan", id="rescan", n_clicks=0, color="primary"),
                         dbc.Checklist(
                             options=[{"label": "Subfolders", "value": "sub"}],
                             value=["sub"],
@@ -41,10 +41,10 @@ def get_layout(config_data):
 
                         dcc.Upload(
                             id="upload-config",
-                            children=html.Button("Upload filters", id="upload-config-btn", n_clicks=0),
+                            children=dbc.Button("Upload filters", id="upload-config-btn", n_clicks=0, color="primary"),
                             multiple=False,  # single file
                         ),
-                        html.Button("Save filters", id="save-config-btn", n_clicks=0),
+                        dbc.Button("Save filters", id="save-config-btn", n_clicks=0, color="primary"),
                         dbc.Tooltip(
                             "Upload a YAML/JSON config or a plain gene list (.txt). "
                             "This will replace the current filters and selected genes.",
@@ -86,9 +86,9 @@ def get_layout(config_data):
         # Download button and filter components
         dbc.Row(
             [
-                dbc.Col(dbc.Button("Gene Filter Panel", id="open-left-offcanvas", n_clicks=0), width=2),
-                dbc.Col(dbc.Button("Export Plot SVG", id="download-svg-btn", n_clicks=0), width=2,),
-                dbc.Col(dbc.Button("Barcode Filter Panel", id="open-right-offcanvas", n_clicks=0), width=2),
+                dbc.Col(dbc.Button("Gene Filter Panel", id="open-left-offcanvas", n_clicks=0, color="primary"), width=2),
+                dbc.Col(dbc.Button("Export Plot SVG", id="download-svg-btn", n_clicks=0, color="primary"), width=2,),
+                dbc.Col(dbc.Button("Barcode Filter Panel", id="open-right-offcanvas", n_clicks=0, color="primary"), width=2),
             ],
             justify="center",
         ),
@@ -103,7 +103,9 @@ def get_layout(config_data):
                 "minHeight": 0,
                 "minWidth": 0,
                 "flexWrap": "wrap",
+                "alignContent": "flex-start",
                 "gap": "1rem",
+                "overflowY": "auto",
             },
         ),
         # Off-canvas drawer holding cell/barcode filters
@@ -136,6 +138,8 @@ def get_layout(config_data):
             "padding": "1rem",
             "display": "flex",
             "flexDirection": "column",
+            "minHeight": 0,
+            "overflow": "hidden",
         },
     )
 
