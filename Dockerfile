@@ -24,11 +24,16 @@ RUN set -eux; \
 
 # 4) Install R (latest from CRAN backport for Debian bookworm)
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gfortran \
+    cmake \
+    pkg-config \
     r-base \
     r-base-dev \
     libcurl4-openssl-dev \
     libxml2-dev \
     libssl-dev \
+    libgit2-dev \
     libfontconfig1-dev \
     libharfbuzz-dev \
     libfribidi-dev \
@@ -43,9 +48,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # 5) Install Seurat and dependencies
 RUN mkdir -p /usr/local/lib/R/site-library && chmod -R 777 /usr/local/lib/R/site-library && \
-    R --quiet -e 'if (!require("BiocManager", quietly = TRUE)) install.packages("BiocManager"); BiocManager::install(c("multtest", "AnnotationDbi", "org.Hs.eg.db", "org.Mm.eg.db", "org.Rn.eg.db"))' && \
-    R -e "install.packages('Seurat', repos='https://cloud.r-project.org')" && \
-    R -e "library(Seurat); print('Seurat installed successfully')"
+    R --quiet -e 'options(repos = c(CRAN = "https://cloud.r-project.org")); if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")' && \
+    R --quiet -e 'BiocManager::install(c("multtest", "AnnotationDbi", "org.Hs.eg.db", "org.Mm.eg.db", "org.Rn.eg.db", "SingleCellExperiment"), ask = FALSE, update = FALSE)' && \
+    R --quiet -e 'install.packages("Seurat", dependencies = TRUE, repos = c(CRAN = "https://cloud.r-project.org", "https://satijalab.r-universe.dev", "https://bnprks.r-universe.dev"))' && \
+    R --quiet -e 'stopifnot(requireNamespace("Seurat", quietly = TRUE)); stopifnot(requireNamespace("SingleCellExperiment", quietly = TRUE)); packageVersion("Seurat"); print("Seurat installed successfully")'
 
 
 # Ensure R can find Seurat at runtime
