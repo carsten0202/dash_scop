@@ -3,7 +3,6 @@ import os
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
-
 FILTER_GRID_STYLE = {
     "display": "grid",
     "gridTemplateColumns": "minmax(0, 1fr) 2rem 2rem",
@@ -68,7 +67,6 @@ def get_layout(config_data):
                                 "flexWrap": "wrap",
                             },
                         ),
-                        html.Div(id="info-message", className="mt-2"),
                     ],
                     style={
                         "padding": "0.75rem 1rem",
@@ -100,7 +98,7 @@ def get_layout(config_data):
                             value="umap",  # Default selection
                             clearable=False,  # Should never be empty. You must select one, or let the default ride.
                             disabled=True,  # Enable after file load
-                            style={"flex": "1 1 420px", "minWidth": "280px", "maxWidth": "520px"},
+                            style={"flex": "1 1 560px", "minWidth": "280px"},
                         ),
                     ],
                     style={"display": "flex", "alignItems": "center", "gap": "0.75rem", "flex": "1 1 520px", "minWidth": "340px"},
@@ -129,7 +127,19 @@ def get_layout(config_data):
             },
         ),
         dcc.Download(id="download-plot"),
-        html.Div(id="error-message", className="mt-3"),
+        html.Div(
+            [
+                html.Div(id="load-message"),
+                html.Div(id="plot-message"),
+            ],
+            id="message-area",
+            style={
+                "display": "flex",
+                "flexDirection": "column",
+                "gap": "0.5rem",
+                "marginBottom": "0.5rem",
+            },
+        ),
         # Graph container
         html.Div(
             id="plot-container",
