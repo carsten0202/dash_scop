@@ -97,8 +97,9 @@ def filter_from_metadata(metadata_df):
 
 # -------------------------------------------------------------------
 # Helper to generate a boxplot figure
-def generate_boxplot(expression_df, cell_metadata, gene, shape_column):
+def generate_boxplot(expression_df, cell_metadata, gene, shape_column, gene_label=None):
     """Generate a boxplot figure lazily from expression data and metadata."""
+    display_gene = gene_label or gene
     plot_df = expression_df.transpose().copy()
     plot_df.index.name = "Cell"
     plot_df = plot_df.reset_index()
@@ -107,21 +108,21 @@ def generate_boxplot(expression_df, cell_metadata, gene, shape_column):
         plot_df = plot_df.merge(cell_metadata[[shape_column]], left_on="Cell", right_index=True, how="left")
 
     if shape_column and shape_column in plot_df.columns:
-        fig_df = plot_df[["Cell", shape_column, gene]]
+        fig_df = plot_df[["Cell", shape_column, gene]].rename(columns={gene: display_gene})
         fig = px.box(
             fig_df,
             x=shape_column,
-            y=gene,
-            labels={shape_column: shape_column, gene: "Expression"},
-            title=f"Boxplot for {gene}",
+            y=display_gene,
+            labels={shape_column: shape_column, display_gene: "Expression"},
+            title=f"Boxplot for {display_gene}",
         )
     else:
-        fig_df = plot_df[["Cell", gene]]
+        fig_df = plot_df[["Cell", gene]].rename(columns={gene: display_gene})
         fig = px.box(
             fig_df,
-            y=gene,
-            labels={gene: "Expression"},
-            title=f"Boxplot for {gene}",
+            y=display_gene,
+            labels={display_gene: "Expression"},
+            title=f"Boxplot for {display_gene}",
         )
     return fig
 # -------------------------------------------------------------------
@@ -129,22 +130,24 @@ def generate_boxplot(expression_df, cell_metadata, gene, shape_column):
 
 # -------------------------------------------------------------------
 # Helper to generate a heatmap figure
-def generate_heatmap(heatmap_df):
+def generate_heatmap(heatmap_df, gene_labels=None):
+    display_df = heatmap_df.rename(index=lambda gene: gene_labels.get(gene, gene) if gene_labels else gene)
+
     heatmap_figure = px.imshow(
-        heatmap_df,
+        display_df,
         color_continuous_scale="Viridis",
         title="Gene Expression Heatmap",
-        x=heatmap_df.columns,  # columns
-        y=heatmap_df.index.tolist(), # rows
+        x=display_df.columns,  # columns
+        y=display_df.index.tolist(), # rows
         aspect="auto",
         # aspect="equal",
         labels=dict(x="Barcodes", y="Genes", color="Expr"),  # axis titles & color-bar
     )
 
     # Don't show labels if there's too many
-    if len(heatmap_df.columns) > settings.max_ticks_y:
+    if len(display_df.columns) > settings.max_ticks_y:
         heatmap_figure.update_yaxes(showticklabels=False)
-    if len(heatmap_df.index.tolist()) > settings.max_ticks_x:
+    if len(display_df.index.tolist()) > settings.max_ticks_x:
         heatmap_figure.update_xaxes(showticklabels=False)
 
     return heatmap_figure
@@ -167,7 +170,7 @@ def generate_umap(umap_df, color, shape):
 
 # -------------------------------------------------------------------
 # Helper to generate a violin plot figure
-def generate_violin(violin_df, genes, cell_metadata, shape_column):
+def generate_violin(violin_df, genes, cell_metadata, shape_column, gene_labels=None):
     """Generate a violin plot figure."""
 
     if not genes:
@@ -178,6 +181,8 @@ def generate_violin(violin_df, genes, cell_metadata, shape_column):
     plot_df = violin_df.transpose().copy()
     plot_df.index.name = "Cell"
     plot_df = plot_df.reset_index()
+    if gene_labels:
+        plot_df = plot_df.rename(columns={gene: gene_labels.get(gene, gene) for gene in genes})
 
     if shape_column and shape_column in cell_metadata.columns:
         plot_df = plot_df.merge(cell_metadata[[shape_column]], left_on="Cell", right_index=True, how="left")
@@ -250,13 +255,13 @@ def parse_upload(contents: str, filename: str):
 def validate_selected_cells(selected_cells: list[str], all_cells: list[str], max_cells: int = settings.max_cells) -> tuple[list[str], dbc.Alert | None]:
     # Check if all selected cells are in the current data
     if not all(cell in all_cells for cell in selected_cells):
-        raise ValueError("Some selected cells are not in the current data!")
+        raise ValueError("Some selected barcodes are not in the current data!")
 
     # Check if the number of selected cells is within the limit
     alert = None
     if len(selected_cells) > max_cells:
         selected_cells = selected_cells[:max_cells]  # Trim the list to the max allowed
-        alert = dbc.Alert(f"Warning: Too many cells selected. Downsampling to maximum {max_cells} cells.", color="danger", dismissable=True)
+        alert = dbc.Alert(f"Warning: Too many barcodes selected. Downsampling to maximum {max_cells} barcodes.", color="danger", dismissable=True)
 
     return list(selected_cells), alert
 # -------------------------------------------------------------------

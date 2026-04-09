@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import time
 import traceback
 import uuid
@@ -34,6 +35,51 @@ last_figure = None
 
 # Activate logging
 logger = logging.getLogger(__name__)
+
+
+def _normalize_config_genes(config_genes):
+    if not config_genes:
+        return []
+
+    if isinstance(config_genes, str):
+        return [token for token in re.split(r"[\s,;]+", config_genes) if token]
+
+    normalized = []
+    for entry in config_genes:
+        if entry is None:
+            continue
+        if isinstance(entry, str):
+            normalized.extend(token for token in re.split(r"[\s,;]+", entry) if token)
+        else:
+            normalized.append(str(entry))
+    return normalized
+
+
+def _resolve_config_genes(config_genes, seurat_data):
+    requested_genes = _normalize_config_genes(config_genes)
+    if not requested_genes:
+        return []
+
+    available_gene_ids = set(seurat_data["genes"])
+    gene_ids_by_symbol = seurat_data.get("gene_ids_by_symbol", {})
+    gene_ids_by_symbol_folded = seurat_data.get("gene_ids_by_symbol_folded", {})
+
+    resolved_genes = []
+    seen_genes = set()
+    for requested_gene in requested_genes:
+        if requested_gene in available_gene_ids:
+            matches = [requested_gene]
+        else:
+            matches = gene_ids_by_symbol.get(requested_gene)
+            if not matches:
+                matches = gene_ids_by_symbol_folded.get(requested_gene.casefold(), [])
+
+        for gene_id in matches:
+            if gene_id not in seen_genes:
+                resolved_genes.append(gene_id)
+                seen_genes.add(gene_id)
+
+    return resolved_genes
 
 def register_callbacks(app):
     # Initialize Flask-Caching **after** app creation
@@ -229,12 +275,16 @@ def register_callbacks(app):
         State({"type": "filter-control", "name": ALL}, "id"),
         State("color-column-name", "data"),
         State("shape-column-name", "data"),
+        State("dataset-key", "data"),
         State("file-dropdown", "value"),
         prevent_initial_call=True,
     )
-    def save_config_yaml(n_clicks, selected_genes, filter_values, filter_ids, color_col, shape_col, rel_dataset):
+    def save_config_yaml(n_clicks, selected_genes, filter_values, filter_ids, color_col, shape_col, dataset_key, rel_dataset):
         if not n_clicks:
             return no_update
+
+        seurat_data = cache.get(dataset_key) if dataset_key else None
+        gene_symbols = seurat_data.get("gene_symbols", {}) if seurat_data else {}
 
         # Turn the pattern-matching filter controls into a dict: {column_name: value}
         filters = {}
@@ -250,7 +300,8 @@ def register_callbacks(app):
             "version": 1,
             "saved_at": time.strftime("%Y-%m-%d %H:%M:%S"),
             "dataset": rel_dataset,          # relative path from dropdown (nice to keep)
-            "Genes": selected_genes or [],   # matches what your upload logic expects
+            "Genes": [gene_symbols.get(gene, gene) for gene in (selected_genes or [])],
+            "GeneIDs": selected_genes or [],
             "Filters": filters,
             "Color": color_col,
             "Shape": shape_col,
@@ -297,6 +348,7 @@ def register_callbacks(app):
             selected_cells = cell_index["cells"]  # Get filtered cell/barcodes indices from cache
             barcodes_color = cell_index["color"]  # Get colors matching index from cache
             barcodes_shape = cell_index["shape"]  # Get shapes matching index from cache
+            gene_labels = seurat_data.get("gene_labels", {})
             if plot_type == "boxplot":
                 """Generate boxplots for each selected gene. Either split by shape filter, or all in one stack."""
                 if not selected_genes:
@@ -310,7 +362,13 @@ def register_callbacks(app):
                         genes=[gene],
                         cells=selected_cells,
                     )
-                    last_figure = generate_boxplot(expression_df, cell_metadata, gene, shape_column)
+                    last_figure = generate_boxplot(
+                        expression_df,
+                        cell_metadata,
+                        gene,
+                        shape_column,
+                        gene_label=gene_labels.get(gene, gene),
+                    )
                     plot_figures.append(
                         html.Div(
                             dcc.Graph(
@@ -355,7 +413,13 @@ def register_callbacks(app):
                     cells=selected_cells,
                 )
                 cell_metadata = seurat_data["metadata"].loc[selected_cells]
-                last_figure = generate_violin(violin_df, selected_genes, cell_metadata, shape_column)
+                last_figure = generate_violin(
+                    violin_df,
+                    selected_genes,
+                    cell_metadata,
+                    shape_column,
+                    gene_labels=gene_labels,
+                )
                 plot_figures.append(
                     html.Div(
                         dcc.Graph(
@@ -379,7 +443,10 @@ def register_callbacks(app):
                     genes=selected_genes,
                     cells=validated_cells,
                 )
-                last_figure = generate_heatmap(heatmap_df)  # Generate heatmap (side-effect of setting global last_figure for export)
+                last_figure = generate_heatmap(
+                    heatmap_df,
+                    gene_labels=gene_labels,
+                )  # Generate heatmap (side-effect of setting global last_figure for export)
                 plot_figures.append(
                     html.Div(
                         dcc.Graph(
@@ -428,20 +495,25 @@ def register_offcanvas_callbacks(app, cache):
         :param selected_genes: Description
         """
         try:
-            gene_names = cache.get(dataset_key)["genes"]
-            gene_options = [{"label": gene, "value": gene} for gene in gene_names]
+            seurat_data = cache.get(dataset_key)
+            gene_names = seurat_data["genes"]
+            gene_labels = seurat_data.get("gene_labels", {})
+            gene_options = [{"label": gene_labels.get(gene, gene), "value": gene} for gene in gene_names]
         except TypeError:
             return no_update, no_update
 
         # This is a bit hacky, but it allows us to set the gene selection based on an uploaded config file.
         # Could be added to the plot update callback, but that one is already bloated. This should work
-        if config_data and "Genes" in config_data:
-            config_genes = config_data["Genes"] # Get gene list from uploaded config
-            selected_genes = config_genes
+        if config_data:
+            selected_gene_ids = _resolve_config_genes(config_data.get("GeneIDs"), seurat_data)
+            if selected_gene_ids:
+                selected_genes = selected_gene_ids
+            elif "Genes" in config_data:
+                selected_genes = _resolve_config_genes(config_data["Genes"], seurat_data)
 
         # Validate selected genes columns against gene_options (which may change if user re-loads dataset)
         set_gene_options = set([opt["value"] for opt in gene_options])  # O(1) lookups
-        selected_genes = [x for x in selected_genes if x in set_gene_options]
+        selected_genes = [x for x in (selected_genes or []) if x in set_gene_options]
 
         return gene_options, selected_genes
 

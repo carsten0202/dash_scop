@@ -43,7 +43,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # 5) Install Seurat and dependencies
 RUN mkdir -p /usr/local/lib/R/site-library && chmod -R 777 /usr/local/lib/R/site-library && \
-    R --quiet -e 'if (!require("BiocManager", quietly = TRUE)) install.packages("BiocManager"); BiocManager::install("multtest")' && \
+    R --quiet -e 'if (!require("BiocManager", quietly = TRUE)) install.packages("BiocManager"); BiocManager::install(c("multtest", "AnnotationDbi", "org.Hs.eg.db", "org.Mm.eg.db", "org.Rn.eg.db"))' && \
     R -e "install.packages('Seurat', repos='https://cloud.r-project.org')" && \
     R -e "library(Seurat); print('Seurat installed successfully')"
 
@@ -80,4 +80,3 @@ COPY src .
 # Expose and run
 EXPOSE 8050
 CMD ["/app/.venv/bin/python3", "/app/cli.py", "--ip", "0.0.0.0", "--port", "8050"]
-

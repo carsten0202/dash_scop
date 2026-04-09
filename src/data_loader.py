@@ -1,4 +1,5 @@
 import os
+from collections import Counter, defaultdict
 
 import pandas as pd
 import rpy2.robjects as ro
@@ -18,6 +19,59 @@ except Exception as e:
 ro.r("""
     .seurat_registry <- new.env(parent = emptyenv())
 
+    infer_ensembl_species <- function(genes) {
+        if (length(genes) == 0) {
+            return(NA_character_)
+        }
+
+        normalized <- sub("\\\\..*$", "", genes)
+        if (any(startsWith(normalized, "ENSMUS"), na.rm = TRUE)) {
+            return("mouse")
+        }
+        if (any(startsWith(normalized, "ENSRN"), na.rm = TRUE)) {
+            return("rat")
+        }
+        if (any(startsWith(normalized, "ENSG"), na.rm = TRUE)) {
+            return("human")
+        }
+
+        NA_character_
+    }
+
+    map_ensembl_to_symbols <- function(genes) {
+        if (length(genes) == 0) {
+            return(rep(NA_character_, 0))
+        }
+
+        species <- infer_ensembl_species(genes)
+        if (is.na(species) || !requireNamespace("AnnotationDbi", quietly = TRUE)) {
+            return(rep(NA_character_, length(genes)))
+        }
+
+        org_pkg <- switch(
+            species,
+            human = "org.Hs.eg.db",
+            mouse = "org.Mm.eg.db",
+            rat = "org.Rn.eg.db",
+            NA_character_
+        )
+        if (is.na(org_pkg) || !requireNamespace(org_pkg, quietly = TRUE)) {
+            return(rep(NA_character_, length(genes)))
+        }
+
+        normalized <- sub("\\\\..*$", "", genes)
+        org_db <- getExportedValue(org_pkg, org_pkg)
+        mapped <- AnnotationDbi::mapIds(
+            org_db,
+            keys = unique(normalized),
+            column = "SYMBOL",
+            keytype = "ENSEMBL",
+            multiVals = "first"
+        )
+
+        unname(mapped[normalized])
+    }
+
     register_seurat_matrix <- function(file_path, assay, layer) {
         obj <- LoadSeuratRds(file_path)
 
@@ -25,6 +79,7 @@ ro.r("""
         metadata <- obj@meta.data
         umap <- as.data.frame(Embeddings(obj, reduction = "umap"))
         genes <- rownames(mat)
+        gene_symbols <- map_ensembl_to_symbols(genes)
         cells <- colnames(mat)
 
         handle <- paste0(
@@ -48,6 +103,7 @@ ro.r("""
             metadata = metadata,
             umap = umap,
             genes = genes,
+            gene_symbols = gene_symbols,
             cells = colnames(mat)
         )
     }
@@ -117,6 +173,32 @@ def _optimize_metadata_dtypes(df: pd.DataFrame) -> pd.DataFrame:
             df[col] = pd.to_numeric(s, downcast="float")
     return df
 
+
+def _build_gene_display_data(genes: list[str], gene_symbols: list[str]) -> tuple[dict[str, str], dict[str, str], dict[str, list[str]], dict[str, list[str]]]:
+    resolved_symbols = []
+    symbol_counts: Counter[str] = Counter()
+
+    for gene, raw_symbol in zip(genes, gene_symbols, strict=False):
+        symbol = raw_symbol.strip() if isinstance(raw_symbol, str) else ""
+        if not symbol:
+            symbol = gene
+        resolved_symbols.append(symbol)
+        if symbol != gene:
+            symbol_counts[symbol] += 1
+
+    gene_symbols_by_id = {}
+    gene_labels = {}
+    gene_ids_by_symbol: dict[str, list[str]] = defaultdict(list)
+    gene_ids_by_symbol_folded: dict[str, list[str]] = defaultdict(list)
+
+    for gene, symbol in zip(genes, resolved_symbols, strict=False):
+        gene_symbols_by_id[gene] = symbol
+        gene_labels[gene] = symbol if symbol == gene or symbol_counts[symbol] == 1 else f"{symbol} ({gene})"
+        gene_ids_by_symbol[symbol].append(gene)
+        gene_ids_by_symbol_folded[symbol.casefold()].append(gene)
+
+    return gene_symbols_by_id, gene_labels, dict(gene_ids_by_symbol), dict(gene_ids_by_symbol_folded)
+
 def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"):
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File {file_path} not found.")
@@ -129,13 +211,23 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
         umap_df = registry.getbyname("umap")
         umap_df.columns = umap_df.columns.str.upper()
         genes = list(registry.getbyname("genes"))
+        gene_symbols = list(registry.getbyname("gene_symbols"))
         cells = list(registry.getbyname("cells"))
+
+    gene_symbols_by_id, gene_labels, gene_ids_by_symbol, gene_ids_by_symbol_folded = _build_gene_display_data(
+        genes,
+        gene_symbols,
+    )
 
     print(f"Loaded Seurat object from {file_path} with handle {handle}. Metadata shape: {metadata_df.shape}, UMAP shape: {umap_df.shape}")
 
     return {
         "seurat_handle": handle,
         "genes": genes,
+        "gene_symbols": gene_symbols_by_id,
+        "gene_labels": gene_labels,
+        "gene_ids_by_symbol": gene_ids_by_symbol,
+        "gene_ids_by_symbol_folded": gene_ids_by_symbol_folded,
         "cells": cells,
         "metadata": metadata_df,
         "umap": umap_df,
