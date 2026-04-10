@@ -30,10 +30,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     r-base \
     r-base-dev \
+    libuv1-dev \
     libcurl4-openssl-dev \
     libxml2-dev \
     libssl-dev \
     libgit2-dev \
+    libcairo2-dev \
+    libhdf5-dev \
+    libudunits2-dev \
+    libfftw3-dev \
+    libgdal-dev \
+    libgeos-dev \
+    libproj-dev \
     libfontconfig1-dev \
     libharfbuzz-dev \
     libfribidi-dev \
@@ -50,7 +58,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN mkdir -p /usr/local/lib/R/site-library && chmod -R 777 /usr/local/lib/R/site-library && \
     R --quiet -e 'options(repos = c(CRAN = "https://cloud.r-project.org")); if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")' && \
     R --quiet -e 'BiocManager::install(c("multtest", "AnnotationDbi", "org.Hs.eg.db", "org.Mm.eg.db", "org.Rn.eg.db", "SingleCellExperiment"), ask = FALSE, update = FALSE)' && \
-    R --quiet -e 'install.packages("Seurat", dependencies = TRUE, repos = c(CRAN = "https://cloud.r-project.org", "https://satijalab.r-universe.dev", "https://bnprks.r-universe.dev"))' && \
+    R --quiet -e 'install.packages("Seurat", dependencies = c("Depends", "Imports", "LinkingTo"), repos = c(CRAN = "https://cloud.r-project.org", "https://satijalab.r-universe.dev", "https://bnprks.r-universe.dev"))' && \
     R --quiet -e 'stopifnot(requireNamespace("Seurat", quietly = TRUE)); stopifnot(requireNamespace("SingleCellExperiment", quietly = TRUE)); packageVersion("Seurat"); print("Seurat installed successfully")'
 
 
