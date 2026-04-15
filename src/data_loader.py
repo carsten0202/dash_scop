@@ -199,6 +199,18 @@ def _build_gene_display_data(genes: list[str], gene_symbols: list[str]) -> tuple
 
     return gene_symbols_by_id, gene_labels, dict(gene_ids_by_symbol), dict(gene_ids_by_symbol_folded)
 
+
+def remove_seurat_handle(handle: str | None) -> bool:
+    if not handle:
+        return False
+
+    try:
+        removed = ro.r["remove_seurat_matrix"](handle)  # type: ignore
+    except Exception:
+        return False
+
+    return bool(removed[0])
+
 def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"):
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File {file_path} not found.")
@@ -213,6 +225,7 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
         genes = list(registry.getbyname("genes"))
         gene_symbols = list(registry.getbyname("gene_symbols"))
         cells = list(registry.getbyname("cells"))
+    del registry
 
     gene_symbols_by_id, gene_labels, gene_ids_by_symbol, gene_ids_by_symbol_folded = _build_gene_display_data(
         genes,
@@ -232,72 +245,3 @@ def load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"
         "metadata": metadata_df,
         "umap": umap_df,
     }
-
-
-
-def old_load_seurat_rds(file_path: str | os.PathLike[str], assay="SCT", layer="data"):
-    """Reads an RDS file containing a Seurat object and extracts relevant data."""
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"File {file_path} not found.")
-
-    with localconverter(ro.default_converter + pandas2ri.converter):
-        """
-        # Join layers to convert to SCE
-        seurat_obj <- SeuratObject::JoinLayers(seurat_obj, assay = "RNA")
-        sce_obj <- Seurat::as.SingleCellExperiment(seurat_obj)
-
-        # Convert gene names to Symbols
-        library(annotation)
-        org_db <- org.Mm.eg.db
-
-        ensembl_ids <- rownames(sce_obj)
-        gene_symbols <- AnnotationDbi::mapIds(
-            org_db,
-            keys = ensembl_ids,
-            column = "SYMBOL",
-            keytype = "ENSEMBL"
-        )
-
-        rownames(sce_obj) <- ifelse(
-            is.na(gene_symbols[rownames(sce_obj)]),
-            ensembl_ids,
-            gene_symbols[rownames(sce_obj)]
-        )
-        """
-
-        seurat_obj = ro.r["LoadSeuratRds"](str(file_path))  # Load Seurat RDS file # type: ignore
-        extracted = ro.r["extract_data"](seurat_obj, assay, layer)  # type: ignore
-
-        # Prepare metadata DataFrame
-        metadata_df = pd.concat(
-            [
-                extracted[0][
-                    [x for x in extracted[0].columns if extracted[0][x].dtype in ["object", "category", "str"]]
-                ].astype(
-                    "category"
-                ),  # Extract columns from metadata as pandas DataFrame that are of type 'object', 'category' or 'str'
-                extracted[0][
-                    [x for x in extracted[0].columns if extracted[0][x].dtype not in ["object", "category", "str"]]
-                ],  # Extract non-categorical (probably numeric) columns from metadata
-            ],
-            axis=1,
-        )
-
-        # DataFrame suitable for boxplots & violon plots
-        gene_matrix_df = extracted[1]  # Gene expression matrix as pandas DataFrame
-#        boxplot_df = pd.concat([metadata_df, gene_matrix_df.transpose()], axis=1)
-
-        # DataFrame for Heatmaps
-#        heatmap_df = gene_matrix_df.apply(zscore, axis=1, result_type="broadcast")
-
-        # DataFrame for UMAP plotting
-        umap_df = extracted[2]  # UMAP data as pandas DataFrame...
-        umap_df.columns = umap_df.columns.str.upper()  # ...and set column names to uppercase
-
-        return {
-            "boxplot": None,
-            "gene_counts": gene_matrix_df,
-            "heatmap": None,
-            "metadata": metadata_df,
-            "umap": umap_df,
-        }
