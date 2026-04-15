@@ -34,6 +34,8 @@ from layout import FILTER_GRID_STYLE, make_filter_component
 # Activate logging
 logger = logging.getLogger(__name__)
 
+# TODO: Consider refactoring the callbacks into separate modules or classes for better organization and maintainability, especially as the number of callbacks grows. For example, we could have a module for file handling callbacks, another for plot generation callbacks, and another for filter management callbacks. This would help keep the codebase organized and make it easier to navigate and maintain in the long run. Additionally, we could consider implementing some error handling and logging within the callbacks to help with debugging and monitoring the app's behavior in production.
+# TODO: Review code and consider where we could add meaningful messages to the user in the UI, especially in cases where something goes wrong (e.g., file load failure, invalid config upload, plot generation errors). Currently, some callbacks return error messages as alerts, but we could standardize this approach and ensure that all potential error cases are handled gracefully with informative messages for the user.
 
 def _normalize_config_genes(config_genes):
     if not config_genes:
