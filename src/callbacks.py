@@ -16,7 +16,7 @@ from dash.dcc.express import send_bytes, send_string
 from flask_caching import Cache
 
 import settings
-from data_loader import load_seurat_rds
+from data_loader import load_seurat_rds, remove_seurat_handle
 from helpers import (
     fetch_expression_subset,
     fetch_expression_subset_zscores,
@@ -36,6 +36,8 @@ logger = logging.getLogger(__name__)
 
 # TODO: Consider refactoring the callbacks into separate modules or classes for better organization and maintainability, especially as the number of callbacks grows. For example, we could have a module for file handling callbacks, another for plot generation callbacks, and another for filter management callbacks. This would help keep the codebase organized and make it easier to navigate and maintain in the long run. Additionally, we could consider implementing some error handling and logging within the callbacks to help with debugging and monitoring the app's behavior in production.
 # TODO: Review code and consider where we could add meaningful messages to the user in the UI, especially in cases where something goes wrong (e.g., file load failure, invalid config upload, plot generation errors). Currently, some callbacks return error messages as alerts, but we could standardize this approach and ensure that all potential error cases are handled gracefully with informative messages for the user.
+# TODO: There's something fishy about the labels on the heatmap which don't always show as expected.
+# TODO: Drawing the heatmap still takes long for large datasets. Maybe add extra downsampling?
 
 def _normalize_config_genes(config_genes):
     if not config_genes:
@@ -160,9 +162,11 @@ def register_callbacks(app):
         Output("plot-selector", "disabled"),
         Output("load-message", "children"),
         Input("file-dropdown", "value"),
+        State("dataset-key", "data"),
+        State("cell-index-key", "data"),
         prevent_initial_call=True,
     )
-    def handle_file_selection(rel_value):
+    def handle_file_selection(rel_value, current_dataset_key, current_cell_index_key):
         """
         Triggered when a file is selected from the dropdown. Loads the selected Seurat RDS file, extracts the filter
         schema from its metadata, and updates the dataset key and UI state accordingly.
@@ -181,7 +185,14 @@ def register_callbacks(app):
         try:
             st = abs_path.stat()
             data_dfs = load_seurat_rds(abs_path)  # Don't send this object to the browser
-            cache.clear()  # Clear previous cache to save memory
+            previous_dataset = cache.get(current_dataset_key) if current_dataset_key else None
+            previous_handle = previous_dataset.get("seurat_handle") if previous_dataset else None
+            if previous_handle and previous_handle != data_dfs["seurat_handle"]:
+                remove_seurat_handle(previous_handle)
+            if current_dataset_key:
+                cache.delete(current_dataset_key)
+            if current_cell_index_key:
+                cache.delete(current_cell_index_key)
             cache.set(
                 dataset_key, data_dfs, timeout=None
             )  # store big data_dfs in the cache, timeout=None or 0 => use default (=> no expiry)
@@ -202,7 +213,7 @@ def register_callbacks(app):
                 ),
             )
         except Exception as e:
-            return dataset_key, {}, True, dbc.Alert(f"Failed to load: {e}", color="danger", dismissable=True)
+            return no_update, no_update, no_update, dbc.Alert(f"Failed to load: {e}", color="danger", dismissable=True)
 
     @app.callback(
         Output("file-list", "data"),
@@ -361,6 +372,7 @@ def register_callbacks(app):
         Output("plot-container", "children"),
         Output("plot-message", "children"),
         Output("active-plot-figures", "data"),
+        Output("plot-status-store", "data", allow_duplicate=True),
         Input("plot-selector", "value"),
         Input("gene-selector", "value"),
         Input("cell-index-key", "data"),
@@ -384,13 +396,24 @@ def register_callbacks(app):
                 + "Please (re-)load the dataset.",
                 color="danger",
                 dismissable=True,
-            ), []
+            ), [], None
 
         try:
             selected_cells = cell_index["cells"]  # Get filtered cell/barcodes indices from cache
             barcodes_color = cell_index["color"]  # Get colors matching index from cache
             barcodes_shape = cell_index["shape"]  # Get shapes matching index from cache
             gene_labels = seurat_data.get("gene_labels", {})
+            if not selected_cells:
+                return (
+                    [],
+                    dbc.Alert(
+                        "No cells match the current filters. Adjust one or more barcode filters to continue.",
+                        color="warning",
+                        dismissable=True,
+                    ),
+                    [],
+                    None,
+                )
             if plot_type == "boxplot":
                 """Generate boxplots for each selected gene. Either split by shape filter, or all in one stack."""
                 if not selected_genes:
@@ -513,11 +536,45 @@ def register_callbacks(app):
                 raise ValueError("Something went wrong?")
 
         except ValueError as e:
-            return plot_figures, dbc.Alert(f"Error: {e}", color="danger", dismissable=True), []
+            return plot_figures, dbc.Alert(f"Error: {e}", color="danger", dismissable=True), [], None
         except TypeError as e:
-            return plot_figures, f"Error: {str(e)}", []
+            return plot_figures, dbc.Alert(f"Error: {str(e)}", color="danger", dismissable=True), [], None
 
-        return plot_figures, alert, active_plot_figures
+        return plot_figures, alert, active_plot_figures, None
+
+    @app.callback(
+        Output("plot-status-store", "data", allow_duplicate=True),
+        Input({"type": "filter-control", "name": ALL}, "value"),
+        Input("plot-selector", "value"),
+        Input("gene-selector", "value"),
+        Input("shape-column-name", "data"),
+        Input("dataset-key", "data"),
+        Input("cell-index-key", "data"),
+        prevent_initial_call=True,
+    )
+    def mark_plot_update_pending(_filter_values, _plot_type, _selected_genes, _shape_column, dataset_key, cell_index_key):
+        if not dataset_key or not cell_index_key:
+            return None
+
+        return {"kind": "loading"}
+
+    @app.callback(
+        Output("plot-message", "children", allow_duplicate=True),
+        Input("plot-status-store", "data"),
+        prevent_initial_call=True,
+    )
+    def render_plot_status(plot_status):
+        if not plot_status:
+            return None
+
+        if plot_status.get("kind") == "loading":
+            return dbc.Alert(
+                "Selection registered. Updating plots for the current filters - this can take a few seconds for large datasets.",
+                color="info",
+                dismissable=True,
+            )
+
+        return None
 
     register_offcanvas_callbacks(app, cache)
 
@@ -587,9 +644,12 @@ def register_offcanvas_callbacks(app, cache):
             shape_column = None
 
         for f, id_ in zip(filters_cells, filters_ids, strict=True):
+            if not f:
+                continue
             selected_indices = metadata_df.index[metadata_df[id_["name"]].isin(f)]
-            if selected_indices.size:
-                selected_cells = selected_cells.intersection(selected_indices)
+            selected_cells = selected_cells.intersection(selected_indices)
+            if selected_cells.empty:
+                break
         color_barcodes = metadata_df.loc[selected_cells, color_column] if color_column else None  # Series or None
         shape_barcodes = metadata_df.loc[selected_cells, shape_column] if shape_column else None  # Series or None
 
