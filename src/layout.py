@@ -23,6 +23,7 @@ def get_layout(config_data):
         dcc.Store(id="filter-schema-store", data=[]),  # holds the filter schema, [] for none
         dcc.Store(id="shape-column-name"),  # holds column name for the current shape selection
         dcc.Store(id="config-store"),  # parsed config lives here
+        dcc.Store(id="active-plot-figures", data=[]),  # serialized active figures for export
         html.Div(
             id="file-controls",
             children=[

@@ -1,8 +1,10 @@
+import io
 import logging
 import os
 import re
 import time
 import uuid
+import zipfile
 from datetime import datetime
 from pathlib import Path
 
@@ -28,9 +30,6 @@ from helpers import (
     validate_selected_cells,
 )
 from layout import FILTER_GRID_STYLE, make_filter_component
-
-# Store the last generated figure
-last_figure = None
 
 # Activate logging
 logger = logging.getLogger(__name__)
@@ -80,6 +79,39 @@ def _resolve_config_genes(config_genes, seurat_data):
 
     return resolved_genes
 
+
+def _figure_title(fig):
+    layout_dict = fig.to_dict().get("layout", {})
+    title_value = layout_dict.get("title", "plot")
+    if isinstance(title_value, dict):
+        title_value = title_value.get("text", "plot")
+    return str(title_value).strip() or "plot"
+
+
+def _safe_filename(value, default="plot"):
+    filename = re.sub(r"[^A-Za-z0-9._-]+", "_", str(value or "").strip())
+    filename = filename.strip("._")
+    return filename or default
+
+
+def _serialize_figure(fig):
+    return {
+        "title": _figure_title(fig),
+        "figure_json": fig.to_json(),
+    }
+
+
+def _figure_json_to_svg_bytes(figure_json):
+    fig = pio.from_json(figure_json)
+    fig.update_layout(
+        template=None,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+    )
+    return pio.to_image(fig, format="svg")
+
+
+
 def register_callbacks(app):
     # Initialize Flask-Caching **after** app creation
     cache = Cache(config={"CACHE_TYPE": "simple", "CACHE_DEFAULT_TIMEOUT": settings.CACHE_DEFAULT_TIMEOUT})
@@ -88,28 +120,37 @@ def register_callbacks(app):
     @app.callback(
         Output("download-plot", "data"),
         Input("download-svg-btn", "n_clicks"),
+        State("active-plot-figures", "data"),
         prevent_initial_call=True,
     )
-    def download_plot(n_clicks):
-        global last_figure
-        if last_figure is None:
+    def download_plot(n_clicks, active_plot_figures):
+        if not n_clicks or not active_plot_figures:
             return None
 
-        fig = last_figure
-        fig.update_layout(
-            template=None,
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-        )
-
-        layout_dict = fig.to_dict().get("layout", {})
-        title_text = layout_dict.get("title", {}).get("text", "plot")
-        title = str(title_text).strip().replace(" ", "_")
         ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-        filename = f"{title}_{ts}.svg"
 
-        svg_bytes = pio.to_image(fig, format="svg")
-        return send_bytes(svg_bytes, filename=filename)
+        if len(active_plot_figures) == 1:
+            plot_spec = active_plot_figures[0]
+            title = _safe_filename(plot_spec.get("title"), "plot")
+            filename = f"{title}_{ts}.svg"
+            svg_bytes = _figure_json_to_svg_bytes(plot_spec["figure_json"])
+            return send_bytes(svg_bytes, filename=filename)
+
+        zip_buffer = io.BytesIO()
+        used_names = set()
+        with zipfile.ZipFile(zip_buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as zip_file:
+            for index, plot_spec in enumerate(active_plot_figures, start=1):
+                title = _safe_filename(plot_spec.get("title"), f"plot_{index:02d}")
+                base_name = f"{index:02d}_{title}"
+                filename = f"{base_name}.svg"
+                suffix = 2
+                while filename in used_names:
+                    filename = f"{base_name}_{suffix}.svg"
+                    suffix += 1
+                used_names.add(filename)
+                zip_file.writestr(filename, _figure_json_to_svg_bytes(plot_spec["figure_json"]))
+
+        return send_bytes(zip_buffer.getvalue(), filename=f"plots_{ts}.zip")
 
     @app.callback(
         Output("dataset-key", "data"),
@@ -317,6 +358,7 @@ def register_callbacks(app):
     @app.callback(
         Output("plot-container", "children"),
         Output("plot-message", "children"),
+        Output("active-plot-figures", "data"),
         Input("plot-selector", "value"),
         Input("gene-selector", "value"),
         Input("cell-index-key", "data"),
@@ -325,11 +367,10 @@ def register_callbacks(app):
         prevent_initial_call=True,
     )
     def update_plots(plot_type, selected_genes, cell_index_key, shape_column, dataset_key):
-        global last_figure  # Store last figure for export
         plot_figures = []
+        active_plot_figures = []
         alert = None
 
-        # TODO: Fix the download of plots (currently downloads last one, not all)
         # TODO: Review the current YAML / JSON Scheme for config files. Could be more logical.
 
         seurat_data = cache.get(dataset_key)  # Get seurat data from cache
@@ -341,7 +382,7 @@ def register_callbacks(app):
                 + "Please (re-)load the dataset.",
                 color="danger",
                 dismissable=True,
-            )
+            ), []
 
         try:
             selected_cells = cell_index["cells"]  # Get filtered cell/barcodes indices from cache
@@ -361,7 +402,7 @@ def register_callbacks(app):
                         genes=[gene],
                         cells=selected_cells,
                     )
-                    last_figure = generate_boxplot(
+                    fig = generate_boxplot(
                         expression_df,
                         cell_metadata,
                         gene,
@@ -371,7 +412,7 @@ def register_callbacks(app):
                     plot_figures.append(
                         html.Div(
                             dcc.Graph(
-                                figure=last_figure,
+                                figure=fig,
                                 style={"height": "100%", "width": "100%"},
                                 config={"responsive": True},
                             ),
@@ -384,14 +425,15 @@ def register_callbacks(app):
                             },
                         )
                     )
+                    active_plot_figures.append(_serialize_figure(fig))
 
             elif plot_type == "umap":
                 umap_df = cache.get(dataset_key)["umap"]  # Get umap data from cache
-                last_figure = generate_umap(umap_df.loc[selected_cells], color=barcodes_color, shape=barcodes_shape)
+                fig = generate_umap(umap_df.loc[selected_cells], color=barcodes_color, shape=barcodes_shape)
                 plot_figures.append(
                     html.Div(
                         dcc.Graph(
-                            figure=last_figure,
+                            figure=fig,
                             style={"height": "100%", "width": "100%"},
                             config={"responsive": True},
                         ),
@@ -403,6 +445,7 @@ def register_callbacks(app):
                         },
                     )
                 )
+                active_plot_figures.append(_serialize_figure(fig))
 
             elif plot_type == "violin":
                 """Generate violin plots for each selected gene. Either split by shape filter, or all in one stack."""
@@ -412,7 +455,7 @@ def register_callbacks(app):
                     cells=selected_cells,
                 )
                 cell_metadata = seurat_data["metadata"].loc[selected_cells]
-                last_figure = generate_violin(
+                fig = generate_violin(
                     violin_df,
                     selected_genes,
                     cell_metadata,
@@ -422,7 +465,7 @@ def register_callbacks(app):
                 plot_figures.append(
                     html.Div(
                         dcc.Graph(
-                            figure=last_figure,
+                            figure=fig,
                             style={"height": "100%", "width": "100%"},
                             config={"responsive": True},
                         ),
@@ -434,6 +477,7 @@ def register_callbacks(app):
                         },
                     )
                 )
+                active_plot_figures.append(_serialize_figure(fig))
 
             elif plot_type == "heatmap":
                 (validated_cells, alert) = validate_selected_cells(selected_cells, all_cells=seurat_data["cells"])  # Validate number of selected cells against limit
@@ -442,14 +486,14 @@ def register_callbacks(app):
                     genes=selected_genes,
                     cells=validated_cells,
                 )
-                last_figure = generate_heatmap(
+                fig = generate_heatmap(
                     heatmap_df,
                     gene_labels=gene_labels,
-                )  # Generate heatmap (side-effect of setting global last_figure for export)
+                )
                 plot_figures.append(
                     html.Div(
                         dcc.Graph(
-                            figure=last_figure,
+                            figure=fig,
                             style={"height": "100%", "width": "100%"},
                             config={"responsive": True},
                         ),
@@ -461,16 +505,17 @@ def register_callbacks(app):
                         },
                     )
                 )
+                active_plot_figures.append(_serialize_figure(fig))
 
             else:
                 raise ValueError("Something went wrong?")
 
         except ValueError as e:
-            return plot_figures, dbc.Alert(f"Error: {e}", color="danger", dismissable=True)
+            return plot_figures, dbc.Alert(f"Error: {e}", color="danger", dismissable=True), []
         except TypeError as e:
-            return plot_figures, f"Error: {str(e)}"
+            return plot_figures, f"Error: {str(e)}", []
 
-        return plot_figures, alert
+        return plot_figures, alert, active_plot_figures
 
     register_offcanvas_callbacks(app, cache)
 
