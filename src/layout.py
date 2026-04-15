@@ -24,6 +24,7 @@ def get_layout(config_data):
         dcc.Store(id="shape-column-name"),  # holds column name for the current shape selection
         dcc.Store(id="config-store"),  # parsed config lives here
         dcc.Store(id="active-plot-figures", data=[]),  # serialized active figures for export
+        dcc.Store(id="plot-status-store"),  # transient UI state for plot updates
         html.Div(
             id="file-controls",
             children=[
