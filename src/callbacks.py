@@ -370,7 +370,7 @@ def register_callbacks(app):
 
     @app.callback(
         Output("plot-container", "children"),
-        Output("plot-message", "children"),
+        Output("plot-alert", "children"),
         Output("active-plot-figures", "data"),
         Output("plot-status-store", "data", allow_duplicate=True),
         Input("plot-selector", "value"),
@@ -383,7 +383,7 @@ def register_callbacks(app):
     def update_plots(plot_type, selected_genes, cell_index_key, shape_column, dataset_key):
         plot_figures = []
         active_plot_figures = []
-        alert = None
+        plot_alert = None
 
         # TODO: Review the current YAML / JSON Scheme for config files. Could be more logical.
 
@@ -505,7 +505,7 @@ def register_callbacks(app):
                 active_plot_figures.append(_serialize_figure(fig))
 
             elif plot_type == "heatmap":
-                (heatmap_genes, heatmap_cells, alert) = limit_heatmap_inputs(
+                (heatmap_genes, heatmap_cells, plot_alert) = limit_heatmap_inputs(
                     selected_genes=selected_genes,
                     selected_cells=selected_cells,
                     all_genes=seurat_data["genes"],
@@ -545,7 +545,7 @@ def register_callbacks(app):
         except TypeError as e:
             return plot_figures, dbc.Alert(f"Error: {str(e)}", color="danger", dismissable=True), [], None
 
-        return plot_figures, alert, active_plot_figures, None
+        return plot_figures, plot_alert, active_plot_figures, None
 
     @app.callback(
         Output("plot-status-store", "data", allow_duplicate=True),

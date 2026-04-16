@@ -133,6 +133,7 @@ def get_layout(config_data):
             [
                 html.Div(id="load-message"),
                 html.Div(id="plot-message"),
+                html.Div(id="plot-alert"),
             ],
             id="message-area",
             style={
