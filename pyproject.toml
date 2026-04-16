@@ -35,6 +35,9 @@ packages = ["src"]
 [tool.ruff]
 line-length = 120
 target-version = "py312"
+fix = true  # Auto-fix linting errors on save
+
+[tool.ruff.lint]
 select = [
     "E",   # pycodestyle
     "F",   # pyflakes
@@ -44,7 +47,6 @@ select = [
 ignore = [
     "E501",  # line length (let formatter handle it)
 ]
-fix = true  # Auto-fix linting errors on save
 
 [tool.mypy]
 python_version = "3.12"

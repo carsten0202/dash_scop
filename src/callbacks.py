@@ -25,9 +25,9 @@ from helpers import (
     generate_heatmap,
     generate_umap,
     generate_violin,
+    limit_heatmap_inputs,
     parse_upload,
     scan_files,
-    validate_selected_cells,
 )
 from layout import FILTER_GRID_STYLE, make_filter_component
 
@@ -505,11 +505,16 @@ def register_callbacks(app):
                 active_plot_figures.append(_serialize_figure(fig))
 
             elif plot_type == "heatmap":
-                (validated_cells, alert) = validate_selected_cells(selected_cells, all_cells=seurat_data["cells"])  # Validate number of selected cells against limit
+                (heatmap_genes, heatmap_cells, alert) = limit_heatmap_inputs(
+                    selected_genes=selected_genes,
+                    selected_cells=selected_cells,
+                    all_genes=seurat_data["genes"],
+                    all_cells=seurat_data["cells"],
+                )
                 heatmap_df = fetch_expression_subset_zscores( # Get gene count dataframe for selected genes and cells from the seurat data in cache
                     seurat_data["seurat_handle"],
-                    genes=selected_genes,
-                    cells=validated_cells,
+                    genes=heatmap_genes,
+                    cells=heatmap_cells,
                 )
                 fig = generate_heatmap(
                     heatmap_df,

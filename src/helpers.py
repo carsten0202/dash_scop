@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 
 import dash_bootstrap_components as dbc
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import rpy2.robjects as ro
@@ -145,9 +146,9 @@ def generate_heatmap(heatmap_df, gene_labels=None):
     )
 
     # Don't show labels if there's too many
-    if len(display_df.columns) > settings.max_ticks_y:
+    if len(display_df.index) > settings.max_ticks_y:
         heatmap_figure.update_yaxes(showticklabels=False)
-    if len(display_df.index.tolist()) > settings.max_ticks_x:
+    if len(display_df.columns) > settings.max_ticks_x:
         heatmap_figure.update_xaxes(showticklabels=False)
 
     return heatmap_figure
@@ -254,7 +255,8 @@ def parse_upload(contents: str, filename: str):
 # Ensure that selected cells are in the current data, and that the resulting matrix isn't too large to handle
 def validate_selected_cells(selected_cells: list[str], all_cells: list[str], max_cells: int = settings.max_cells) -> tuple[list[str], dbc.Alert | None]:
     # Check if all selected cells are in the current data
-    if not all(cell in all_cells for cell in selected_cells):
+    all_cells_set = set(all_cells)
+    if not all(cell in all_cells_set for cell in selected_cells):
         raise ValueError("Some selected barcodes are not in the current data!")
 
     # Check if the number of selected cells is within the limit
@@ -264,4 +266,56 @@ def validate_selected_cells(selected_cells: list[str], all_cells: list[str], max
         alert = dbc.Alert(f"Warning: Too many barcodes selected. Downsampling to maximum {max_cells} barcodes.", color="danger", dismissable=True)
 
     return list(selected_cells), alert
+# -------------------------------------------------------------------
+
+
+# -------------------------------------------------------------------
+def limit_heatmap_inputs(
+    selected_genes: list[str] | None,
+    selected_cells: list[str],
+    all_genes: list[str],
+    all_cells: list[str],
+    max_genes: int = settings.max_heatmap_genes,
+    max_cells: int = settings.max_heatmap_cells,
+    seed: int = settings.heatmap_sampling_seed,
+) -> tuple[list[str], list[str], dbc.Alert | None]:
+    genes = list(selected_genes) if selected_genes else list(all_genes)
+    cells = list(selected_cells)
+
+    all_genes_set = set(all_genes)
+    all_cells_set = set(all_cells)
+
+    if not all(gene in all_genes_set for gene in genes):
+        raise ValueError("Some selected genes are not in the current data!")
+    if not all(cell in all_cells_set for cell in cells):
+        raise ValueError("Some selected barcodes are not in the current data!")
+
+    rng = np.random.default_rng(seed)
+    genes_were_sampled = len(genes) > max_genes
+    cells_were_sampled = len(cells) > max_cells
+
+    if genes_were_sampled:
+        sampled_gene_indices = set(rng.choice(len(genes), size=max_genes, replace=False).tolist())
+        genes = [gene for idx, gene in enumerate(genes) if idx in sampled_gene_indices]
+
+    if cells_were_sampled:
+        sampled_cell_indices = set(rng.choice(len(cells), size=max_cells, replace=False).tolist())
+        cells = [cell for idx, cell in enumerate(cells) if idx in sampled_cell_indices]
+
+    alert = None
+    if genes_were_sampled and cells_were_sampled:
+        message = (
+            f"Warning: Heatmap limited to {max_genes} genes and {max_cells} barcodes; displaying a random subset."
+        )
+    elif genes_were_sampled:
+        message = f"Warning: Heatmap limited to {max_genes} genes; displaying a random subset."
+    elif cells_were_sampled:
+        message = f"Warning: Heatmap limited to {max_cells} barcodes; displaying a random subset."
+    else:
+        message = None
+
+    if message:
+        alert = dbc.Alert(message, color="warning", dismissable=True)
+
+    return genes, cells, alert
 # -------------------------------------------------------------------

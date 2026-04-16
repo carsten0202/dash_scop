@@ -18,3 +18,6 @@ max_features = 60  # Maximum number of features to plot at once (in violin plots
 max_ticks_x = 100  # Maximum number of ticks to show on x-axis (e.g. for heatmap plots with many categories)
 max_ticks_y = 50  # Maximum number of ticks to show on y-axis (e.g. for heatmap plots with many genes)
 max_cells = 2000  # Maximum number of cells to allow for plotting (performance issues and werkzeug timeouts)
+max_heatmap_cells = 1000  # Maximum number of cells to display in a heatmap
+max_heatmap_genes = 500  # Maximum number of genes to display in a heatmap
+heatmap_sampling_seed = 42  # Fixed seed for deterministic heatmap downsampling
