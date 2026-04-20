@@ -629,8 +629,9 @@ def register_offcanvas_callbacks(app, cache):
         Input("shape-column-name", "data"),
         Input("dataset-key", "data"),
         Input("filter-schema-store", "data"),
+        State("cell-index-key", "data"),
     )
-    def update_cell_selection(filters_cells, filters_ids, color_column, shape_column, dataset_key, schema):
+    def update_cell_selection(filters_cells, filters_ids, color_column, shape_column, dataset_key, schema, current_cell_index_key):
         try:
             metadata_df = cache.get(dataset_key)["metadata"]  # Get metadata data from seurat data in the cache.
             selected_cells = metadata_df.index  # Default to all cell types
@@ -658,8 +659,8 @@ def register_offcanvas_callbacks(app, cache):
         cache.set(
             selection_id, {"cells": list(selected_cells), "color": color_barcodes, "shape": shape_barcodes}, timeout=None
         )  # store it in the cache, timeout=None or 0 => use default (=> no expiry)
-        # Cell selections are Python-side derived state; the R registry is only for
-        # the loaded expression matrix handle.
+        if current_cell_index_key and current_cell_index_key != selection_id:
+            cache.delete(current_cell_index_key)
 
         return selection_id
 
