@@ -54,17 +54,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 5) Install Seurat and dependencies
-RUN mkdir -p /usr/local/lib/R/site-library && chmod -R 777 /usr/local/lib/R/site-library && \
-    R --quiet -e 'options(repos = c(CRAN = "https://cloud.r-project.org")); if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")' && \
-    R --quiet -e 'BiocManager::install(c("multtest", "AnnotationDbi", "org.Hs.eg.db", "org.Mm.eg.db", "org.Rn.eg.db", "SingleCellExperiment"), ask = FALSE, update = FALSE)' && \
-    R --quiet -e 'install.packages("Seurat", dependencies = c("Depends", "Imports", "LinkingTo"), repos = c(CRAN = "https://cloud.r-project.org", "https://satijalab.r-universe.dev", "https://bnprks.r-universe.dev"))' && \
-    R --quiet -e 'stopifnot(requireNamespace("Seurat", quietly = TRUE)); stopifnot(requireNamespace("SingleCellExperiment", quietly = TRUE)); packageVersion("Seurat"); print("Seurat installed successfully")'
-
-
-# Ensure R can find Seurat at runtime
+# Ensure R can install and find packages in the site library
+RUN mkdir -p /usr/local/lib/R/site-library && chmod -R 777 /usr/local/lib/R/site-library
 ENV R_LIBS_SITE=/usr/local/lib/R/site-library
 ENV R_LIBS_USER=/blah
+
+# 5) Install BiocManager
+RUN R --quiet -e 'options(repos = c(CRAN = "https://cloud.r-project.org")); if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")'
+
+# 6) Install Bioconductor packages used by the app
+RUN R --quiet -e 'options(repos = c(CRAN = "https://cloud.r-project.org")); BiocManager::install(c("multtest", "AnnotationDbi", "org.Hs.eg.db", "org.Mm.eg.db", "org.Rn.eg.db", "SingleCellExperiment"), ask = FALSE, update = FALSE)'
+
+# 7) Install Seurat runtime dependencies only
+RUN R --quiet -e 'options(repos = c(CRAN = "https://cloud.r-project.org", "https://satijalab.r-universe.dev", "https://bnprks.r-universe.dev")); install.packages("Seurat", dependencies = c("Depends", "Imports", "LinkingTo"))'
+
+# 8) Verify required R packages explicitly
+RUN R --quiet -e 'stopifnot(requireNamespace("SingleCellExperiment", quietly = TRUE)); stopifnot(requireNamespace("AnnotationDbi", quietly = TRUE))'
+RUN R --quiet -e 'stopifnot(requireNamespace("Seurat", quietly = TRUE)); packageVersion("Seurat"); print("Seurat installed successfully")'
 
 # Create a non-privileged user
 ARG UID=10001
