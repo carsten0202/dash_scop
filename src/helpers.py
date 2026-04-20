@@ -234,20 +234,138 @@ def parse_upload(contents: str, filename: str):
     _, b64data = contents.split(",", 1)
     raw = base64.b64decode(b64data)
 
+    def _normalize_gene_values(values):
+        if values is None:
+            return []
+        if not isinstance(values, list):
+            raise ValueError("genes.values must be a list of strings")
+
+        normalized = []
+        seen = set()
+        for value in values:
+            if not isinstance(value, str):
+                raise ValueError("genes.values must contain only strings")
+            gene = value.strip()
+            if not gene or gene in seen:
+                continue
+            normalized.append(gene)
+            seen.add(gene)
+        return normalized
+
+    def _validate_config(data):
+        if not isinstance(data, dict):
+            raise ValueError("Config file must contain a mapping/object")
+
+        allowed_top_level = {"version", "dataset", "genes", "filters", "encoding"}
+        unknown_keys = set(data) - allowed_top_level
+        if unknown_keys:
+            raise ValueError(f"Unknown top-level keys: {', '.join(sorted(unknown_keys))}")
+
+        version = data.get("version")
+        if version != 1:
+            raise ValueError("version must be 1")
+
+        normalized = {"version": 1}
+
+        dataset = data.get("dataset")
+        if dataset is not None:
+            if not isinstance(dataset, dict):
+                raise ValueError("dataset must be an object")
+            unknown_dataset_keys = set(dataset) - {"path"}
+            if unknown_dataset_keys:
+                raise ValueError(f"Unknown dataset keys: {', '.join(sorted(unknown_dataset_keys))}")
+            dataset_path = dataset.get("path")
+            if dataset_path is not None and not isinstance(dataset_path, str):
+                raise ValueError("dataset.path must be a string")
+            normalized["dataset"] = {"path": dataset_path} if dataset_path else {}
+
+        genes = data.get("genes")
+        if genes is not None:
+            if not isinstance(genes, dict):
+                raise ValueError("genes must be an object")
+            unknown_gene_keys = set(genes) - {"values", "id_type"}
+            if unknown_gene_keys:
+                raise ValueError(f"Unknown genes keys: {', '.join(sorted(unknown_gene_keys))}")
+            id_type = genes.get("id_type", "symbol")
+            if id_type not in {"symbol", "ensembl", "auto"}:
+                raise ValueError("genes.id_type must be one of: symbol, ensembl, auto")
+            normalized["genes"] = {
+                "values": _normalize_gene_values(genes.get("values", [])),
+                "id_type": id_type,
+            }
+
+        filters = data.get("filters")
+        if filters is not None:
+            if not isinstance(filters, dict):
+                raise ValueError("filters must be an object")
+            normalized_filters = {}
+            for filter_name, filter_def in filters.items():
+                if not isinstance(filter_name, str) or not filter_name:
+                    raise ValueError("filters keys must be non-empty strings")
+                if not isinstance(filter_def, dict):
+                    raise ValueError(f"filters.{filter_name} must be an object")
+                unknown_filter_keys = set(filter_def) - {"type", "values", "min", "max"}
+                if unknown_filter_keys:
+                    raise ValueError(
+                        f"Unknown keys for filters.{filter_name}: {', '.join(sorted(unknown_filter_keys))}"
+                    )
+
+                filter_type = filter_def.get("type")
+                if filter_type == "categorical":
+                    values = filter_def.get("values")
+                    if not isinstance(values, list):
+                        raise ValueError(f"filters.{filter_name}.values must be a list")
+                    normalized_filters[filter_name] = {"type": "categorical", "values": values}
+                elif filter_type == "numeric_range":
+                    if "min" not in filter_def or "max" not in filter_def:
+                        raise ValueError(f"filters.{filter_name} numeric_range filters must define min and max")
+                    normalized_filters[filter_name] = {
+                        "type": "numeric_range",
+                        "min": filter_def["min"],
+                        "max": filter_def["max"],
+                    }
+                else:
+                    raise ValueError(f"filters.{filter_name}.type must be categorical or numeric_range")
+            normalized["filters"] = normalized_filters
+
+        encoding = data.get("encoding")
+        if encoding is not None:
+            if not isinstance(encoding, dict):
+                raise ValueError("encoding must be an object")
+            unknown_encoding_keys = set(encoding) - {"color_by", "shape_by"}
+            if unknown_encoding_keys:
+                raise ValueError(f"Unknown encoding keys: {', '.join(sorted(unknown_encoding_keys))}")
+            color_by = encoding.get("color_by")
+            shape_by = encoding.get("shape_by")
+            if color_by is not None and not isinstance(color_by, str):
+                raise ValueError("encoding.color_by must be a string or null")
+            if shape_by is not None and not isinstance(shape_by, str):
+                raise ValueError("encoding.shape_by must be a string or null")
+            normalized["encoding"] = {"color_by": color_by, "shape_by": shape_by}
+
+        return normalized
+
     # JSON is nice for simple key-value configs, and it's also widely used and supported.
     if filename.lower().endswith(".json"):
-        return json.loads(raw.decode("utf-8"))
+        return _validate_config(json.loads(raw.decode("utf-8")))
 
     # YAML is nice because it can represent complex data structures, and it's also human-readable.
     if filename.lower().endswith((".yaml", ".yml")):
-        return yaml.safe_load(raw.decode("utf-8"))
+        return _validate_config(yaml.safe_load(raw.decode("utf-8")))
 
-    # If not YAML or JSON, allow plain text filters for the 'Genes' slot
+    # Plain text uploads are gene lists only.
     if filename.lower().endswith(".txt"):
-        return {"Genes": raw.decode("utf-8")}
+        genes = []
+        seen = set()
+        for line in raw.decode("utf-8").splitlines():
+            gene = line.strip()
+            if not gene or gene.startswith("#") or gene in seen:
+                continue
+            genes.append(gene)
+            seen.add(gene)
+        return {"version": 1, "genes": {"values": genes, "id_type": "symbol"}}
 
-#    raise ValueError(f"Unsupported file type: {filename}")
-    raise ValueError(f"Config: {yaml.safe_load(raw.decode('utf-8'))}")
+    raise ValueError("Unsupported file type. Use .txt, .yaml, .yml, or .json")
 # -------------------------------------------------------------------
 
 

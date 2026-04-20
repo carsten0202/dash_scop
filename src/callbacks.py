@@ -326,35 +326,50 @@ def register_callbacks(app):
         State("shape-column-name", "data"),
         State("dataset-key", "data"),
         State("file-dropdown", "value"),
+        State("filter-schema-store", "data"),
         prevent_initial_call=True,
     )
-    def save_config_yaml(n_clicks, selected_genes, filter_values, filter_ids, color_col, shape_col, dataset_key, rel_dataset):
+    def save_config_yaml(
+        n_clicks,
+        selected_genes,
+        filter_values,
+        filter_ids,
+        color_col,
+        shape_col,
+        dataset_key,
+        rel_dataset,
+        filter_schema,
+    ):
         if not n_clicks:
             return no_update
 
         seurat_data = cache.get(dataset_key) if dataset_key else None
         gene_symbols = seurat_data.get("gene_symbols", {}) if seurat_data else {}
+        schema_by_name = {item["name"]: item for item in (filter_schema or [])}
 
-        # Turn the pattern-matching filter controls into a dict: {column_name: value}
         filters = {}
         for v, id_ in zip(filter_values or [], filter_ids or [], strict=False):
             name = id_.get("name")
             if name is None:
                 continue
-            # store only "active" filters (optional; remove this if you want everything)
             if v not in (None, [], ""):
-                filters[name] = v
+                filter_type = schema_by_name.get(name, {}).get("type", "categorical")
+                if filter_type == "numeric_range" and isinstance(v, list) and len(v) == 2:
+                    filters[name] = {"type": "numeric_range", "min": v[0], "max": v[1]}
+                else:
+                    filters[name] = {"type": "categorical", "values": v}
 
         payload = {
             "version": 1,
-            "saved_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "dataset": rel_dataset,          # relative path from dropdown (nice to keep)
-            "Genes": [gene_symbols.get(gene, gene) for gene in (selected_genes or [])],
-            "GeneIDs": selected_genes or [],
-            "Filters": filters,
-            "Color": color_col,
-            "Shape": shape_col,
+            "genes": {
+                "values": [gene_symbols.get(gene, gene) for gene in (selected_genes or [])],
+                "id_type": "symbol",
+            },
+            "filters": filters,
+            "encoding": {"color_by": color_col, "shape_by": shape_col},
         }
+        if rel_dataset:
+            payload["dataset"] = {"path": rel_dataset}
 
         yaml_text = yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
 
@@ -380,8 +395,6 @@ def register_callbacks(app):
         plot_figures = []
         active_plot_figures = []
         plot_alert = None
-
-        # TODO: Review the current YAML / JSON Scheme for config files. Could be more logical.
 
         seurat_data = cache.get(dataset_key)  # Get seurat data from cache
         cell_index = cache.get(cell_index_key)  # Get cell index data from cache
@@ -606,14 +619,9 @@ def register_offcanvas_callbacks(app, cache):
         except TypeError:
             return no_update, no_update
 
-        # This is a bit hacky, but it allows us to set the gene selection based on an uploaded config file.
-        # Could be added to the plot update callback, but that one is already bloated. This should work
         if config_data:
-            selected_gene_ids = _resolve_config_genes(config_data.get("GeneIDs"), seurat_data)
-            if selected_gene_ids:
-                selected_genes = selected_gene_ids
-            elif "Genes" in config_data:
-                selected_genes = _resolve_config_genes(config_data["Genes"], seurat_data)
+            config_genes = (config_data.get("genes") or {}).get("values", [])
+            selected_genes = _resolve_config_genes(config_genes, seurat_data)
 
         # Validate selected genes columns against gene_options (which may change if user re-loads dataset)
         set_gene_options = set([opt["value"] for opt in gene_options])  # O(1) lookups
@@ -685,7 +693,7 @@ def register_offcanvas_callbacks(app, cache):
             if not config_data:
                 return no_update, no_update
 
-            cfg_color = config_data.get("Color", None)
+            cfg_color = (config_data.get("encoding") or {}).get("color_by")
             schema_names = {s["name"] for s in (schema or [])}
             if cfg_color not in schema_names:
                 return cleared()
@@ -724,7 +732,7 @@ def register_offcanvas_callbacks(app, cache):
             if not config_data:
                 return no_update, no_update
 
-            cfg_shape = config_data.get("Shape", None)
+            cfg_shape = (config_data.get("encoding") or {}).get("shape_by")
             schema_names = {s["name"] for s in (schema or [])}
             if cfg_shape not in schema_names:
                 return cleared()
@@ -776,16 +784,24 @@ def register_offcanvas_callbacks(app, cache):
         if not config_data:
             return no_update
 
-        cfg_filters = config_data.get("Filters", {}) or {}
+        cfg_filters = config_data.get("filters", {}) or {}
 
         new_vals = []
         for id_ in (filter_ids or []):
             name = id_.get("name")
-            v = cfg_filters.get(name, [])
-            if v is None:
+            filter_def = cfg_filters.get(name, {}) or {}
+            filter_type = filter_def.get("type")
+            if filter_type == "categorical":
+                v = filter_def.get("values", [])
+                if v is None:
+                    v = []
+            elif filter_type == "numeric_range":
+                if "min" in filter_def and "max" in filter_def:
+                    v = [filter_def["min"], filter_def["max"]]
+                else:
+                    v = []
+            else:
                 v = []
-            elif isinstance(v, (str, int, float)):
-                v = [v]
             new_vals.append(v)
 
         return new_vals
