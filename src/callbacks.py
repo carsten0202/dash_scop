@@ -34,9 +34,6 @@ from state_store import AppStateStore
 # Activate logging
 logger = logging.getLogger(__name__)
 
-# TODO: Consider refactoring the callbacks into separate modules or classes for better organization and maintainability, especially as the number of callbacks grows. For example, we could have a module for file handling callbacks, another for plot generation callbacks, and another for filter management callbacks. This would help keep the codebase organized and make it easier to navigate and maintain in the long run. Additionally, we could consider implementing some error handling and logging within the callbacks to help with debugging and monitoring the app's behavior in production.
-# TODO: Review code and consider where we could add meaningful messages to the user in the UI, especially in cases where something goes wrong (e.g., file load failure, invalid config upload, plot generation errors). Currently, some callbacks return error messages as alerts, but we could standardize this approach and ensure that all potential error cases are handled gracefully with informative messages for the user.
-
 def _normalize_config_genes(config_genes):
     if not config_genes:
         return []
@@ -166,10 +163,8 @@ def register_callbacks(app):
     )
     def handle_file_selection(rel_value, current_dataset_state_key, current_selection_key):
         """
-        Triggered when a file is selected from the dropdown. Loads the selected Seurat RDS file, extracts the filter
-        schema from its metadata, and updates the opaque dataset-state key stored in the browser.
-        
-        :param rel_value: Description
+        Load the selected Seurat file, persist its server-side dataset state,
+        and update the browser with a new opaque dataset-state key.
         """
         if not rel_value:
             return no_update  # If no file selected, do nothing
@@ -219,11 +214,8 @@ def register_callbacks(app):
     )
     def refresh_file_list(_clicks, _init):
         """
-        Triggers when the 'rescan' button is clicked to refresh the list of available files in the data directory.
-        Also triggers on app initialization to populate the file list on startup.
-        
-        :param _clicks: Description
-        :param _init: Description
+        Scan the configured data directory and return dataset files with
+        lightweight metadata for the browser.
         """
         base_dir = Path(os.getenv("DATASCOPE_RDS_PATH", settings.DEFAULT_RDS_PATH))
         files = scan_files(base_dir)
@@ -248,11 +240,8 @@ def register_callbacks(app):
     )
     def populate_dropdown(file_list, show_flags):
         """
-        Populate the file dropdown options based on the scanned file list and the "show subfolders" flag.
-        If "show subfolders" is enabled, show full relative paths; otherwise, show only filenames.
-        
-        :param file_list: Description
-        :param show_flags: Description
+        Build dataset dropdown options from the scanned file list and the
+        "show subfolders" toggle.
         """
         if not file_list:
             return []
@@ -324,7 +313,6 @@ def register_callbacks(app):
         State({"type": "filter-control", "name": ALL}, "id"),
         State("color-column-name", "data"),
         State("shape-column-name", "data"),
-        State("dataset-key", "data"),
         State("file-dropdown", "value"),
         State("filter-schema-store", "data"),
         prevent_initial_call=True,
@@ -336,15 +324,11 @@ def register_callbacks(app):
         filter_ids,
         color_col,
         shape_col,
-        dataset_key,
         rel_dataset,
         filter_schema,
     ):
         if not n_clicks:
             return no_update
-
-        seurat_data = state.get_dataset(dataset_key)
-        gene_symbols = seurat_data.get("gene_symbols", {}) if seurat_data else {}
         schema_by_name = {item["name"]: item for item in (filter_schema or [])}
 
         filters = {}
@@ -361,9 +345,11 @@ def register_callbacks(app):
 
         payload = {
             "version": 1,
+            # Preserve exact dataset gene IDs so configs round-trip even when
+            # multiple features share the same display symbol.
             "genes": {
-                "values": [gene_symbols.get(gene, gene) for gene in (selected_genes or [])],
-                "id_type": "symbol",
+                "values": selected_genes or [],
+                "id_type": "auto",
             },
             "filters": filters,
             "encoding": {"color_by": color_col, "shape_by": shape_col},
@@ -604,11 +590,8 @@ def register_offcanvas_callbacks(app, state):
     )
     def update_gene_selection(dataset_state_key, selected_genes, config_data):
         """
-        Update the gene selector drop-down based on the selected dataset. Validates the currently selected genes
-        against the new options and resets selection if they are no longer valid.
-        
-        :param dataset_state_key: Opaque browser key for the current server-side dataset state.
-        :param selected_genes: Description
+        Update the gene selector for the active dataset and apply any uploaded
+        gene selections against the currently loaded server-side dataset state.
         """
         try:
             seurat_data = state.get_dataset(dataset_state_key)
@@ -756,12 +739,8 @@ def register_offcanvas_callbacks(app, state):
     )
     def on_config_upload(contents, filename):
         """
-        Triggers when a config or filter file is selected in dialog. Parses the uploaded file and stores its content in
-        the dcc.Store component for use in other callbacks. Also updates the upload status message based on success or
-        failure of the upload.
-        
-        :param contents: Description
-        :param filename: Description
+        Parse an uploaded config file and store the normalized payload for
+        other callbacks.
         """
         if not contents:
             return no_update, no_update
