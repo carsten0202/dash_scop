@@ -16,9 +16,9 @@ FILTER_GRID_STYLE = {
 # Main layout function
 def get_layout(config_data):
     layout = [
-        dcc.Store(id="cell-index-key"),  # holds just the key string for the current cell index selection
+        dcc.Store(id="cell-index-key"),  # opaque key for the current server-side cell selection
         dcc.Store(id="color-column-name"),  # holds column name for the current color selection
-        dcc.Store(id="dataset-key"),  # holds just the key string for the current dataset
+        dcc.Store(id="dataset-key"),  # opaque key for the current server-side dataset state
         dcc.Store(id="file-list"),  # holds list of files
         dcc.Store(id="filter-schema-store", data=[]),  # holds the filter schema, [] for none
         dcc.Store(id="shape-column-name"),  # holds column name for the current shape selection

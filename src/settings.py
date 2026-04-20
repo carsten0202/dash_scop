@@ -12,7 +12,6 @@ DATASCOPE_TOKEN = os.environ.get("DATASCOPE_TOKEN", secrets.token_hex(32))  # 64
 
 # Other Settings
 RDS_ALLOWED_EXT = {".rds", ".rda", ".rdata"}  # Allowed file extensions
-CACHE_DEFAULT_TIMEOUT = 12 * 60 * 60  # Cache timeout in seconds
 
 max_features = 60  # Maximum number of features to plot at once (in violin plots, etc.)
 max_ticks_x = 100  # Maximum number of ticks to show on x-axis (e.g. for heatmap plots with many categories)

@@ -13,7 +13,6 @@ import plotly.io as pio
 import yaml
 from dash import ALL, Input, Output, State, ctx, dcc, html, no_update
 from dash.dcc.express import send_bytes, send_string
-from flask_caching import Cache
 
 import settings
 from data_loader import load_seurat_rds, remove_seurat_handle
@@ -30,6 +29,7 @@ from helpers import (
     scan_files,
 )
 from layout import FILTER_GRID_STYLE, make_filter_component
+from state_store import AppStateStore
 
 # Activate logging
 logger = logging.getLogger(__name__)
@@ -115,9 +115,9 @@ def _figure_json_to_svg_bytes(figure_json):
 
 
 def register_callbacks(app):
-    # Initialize Flask-Caching **after** app creation
-    cache = Cache(config={"CACHE_TYPE": "simple", "CACHE_DEFAULT_TIMEOUT": settings.CACHE_DEFAULT_TIMEOUT})
-    cache.init_app(app.server)
+    if not hasattr(app.server, "app_state"):
+        app.server.app_state = AppStateStore()
+    state = app.server.app_state
 
     @app.callback(
         Output("download-plot", "data"),
@@ -164,10 +164,10 @@ def register_callbacks(app):
         State("cell-index-key", "data"),
         prevent_initial_call=True,
     )
-    def handle_file_selection(rel_value, current_dataset_key, current_cell_index_key):
+    def handle_file_selection(rel_value, current_dataset_state_key, current_selection_key):
         """
         Triggered when a file is selected from the dropdown. Loads the selected Seurat RDS file, extracts the filter
-        schema from its metadata, and updates the dataset key and UI state accordingly.
+        schema from its metadata, and updates the opaque dataset-state key stored in the browser.
         
         :param rel_value: Description
         """
@@ -177,24 +177,24 @@ def register_callbacks(app):
         abs_path = (str_path / rel_value).resolve()
         if not str(abs_path).startswith(str(str_path)):  # prevent path traversal
             raise ValueError(f"Invalid path selection - {abs_path}")
-        dataset_key = str(uuid.uuid4())  # generate a random ID for the dataset we're about to load
-        # Keep Python-native dataset state in the Flask cache while the R registry
+        dataset_state_key = str(uuid.uuid4())  # opaque key for the server-side dataset state
+        # Keep Python-native dataset state in the server-side state store while the R registry
         # owns the expression matrix for lazy subsetting.
         try:
             st = abs_path.stat()
             data_dfs = load_seurat_rds(abs_path)  # Don't send this object to the browser
-            previous_dataset = cache.get(current_dataset_key) if current_dataset_key else None
+            previous_dataset = state.get_dataset(current_dataset_state_key)
             previous_handle = previous_dataset.get("seurat_handle") if previous_dataset else None
             if previous_handle and previous_handle != data_dfs["seurat_handle"]:
                 remove_seurat_handle(previous_handle)
-            if current_dataset_key:
-                cache.delete(current_dataset_key)
-            if current_cell_index_key:
-                cache.delete(current_cell_index_key)
-            cache.set(dataset_key, data_dfs, timeout=None)
+            if current_dataset_state_key:
+                state.delete_dataset(current_dataset_state_key)
+            if current_selection_key:
+                state.delete_selection(current_selection_key)
+            state.put_dataset(dataset_state_key, data_dfs)
             filter_schema = filter_from_metadata(data_dfs["metadata"])
             return (
-                dataset_key,
+                dataset_state_key,
                 filter_schema,  # filter schema from metadata
                 False,  # Enable plot selector after file load
                 dbc.Alert(
@@ -343,7 +343,7 @@ def register_callbacks(app):
         if not n_clicks:
             return no_update
 
-        seurat_data = cache.get(dataset_key) if dataset_key else None
+        seurat_data = state.get_dataset(dataset_key)
         gene_symbols = seurat_data.get("gene_symbols", {}) if seurat_data else {}
         schema_by_name = {item["name"]: item for item in (filter_schema or [])}
 
@@ -391,26 +391,25 @@ def register_callbacks(app):
         Input("dataset-key", "data"),
         prevent_initial_call=True,
     )
-    def update_plots(plot_type, selected_genes, cell_index_key, shape_column, dataset_key):
+    def update_plots(plot_type, selected_genes, selection_key, shape_column, dataset_state_key):
         plot_figures = []
         active_plot_figures = []
         plot_alert = None
 
-        seurat_data = cache.get(dataset_key)  # Get seurat data from cache
-        cell_index = cache.get(cell_index_key)  # Get cell index data from cache
-        if seurat_data is None or cell_index is None:
-            # Data not (yet?) loaded or cache expired
+        seurat_data = state.get_dataset(dataset_state_key)
+        selection_state = state.get_selection(selection_key)
+        if seurat_data is None or selection_state is None:
+            # Data not (yet?) loaded on the server
             return [], dbc.Alert(
-                f"No data loaded or timeout exceeded (timeout = {settings.CACHE_DEFAULT_TIMEOUT} Seconds). "
-                + "Please (re-)load the dataset.",
+                "No data loaded. Please (re-)load the dataset.",
                 color="danger",
                 dismissable=True,
             ), [], None
 
         try:
-            selected_cells = cell_index["cells"]  # Get filtered cell/barcodes indices from cache
-            barcodes_color = cell_index["color"]  # Get colors matching index from cache
-            barcodes_shape = cell_index["shape"]  # Get shapes matching index from cache
+            selected_cells = selection_state["cells"]
+            barcodes_color = selection_state["color"]
+            barcodes_shape = selection_state["shape"]
             gene_labels = seurat_data.get("gene_labels", {})
             if not selected_cells:
                 return (
@@ -462,7 +461,7 @@ def register_callbacks(app):
                     active_plot_figures.append(_serialize_figure(fig))
 
             elif plot_type == "umap":
-                umap_df = cache.get(dataset_key)["umap"]  # Get umap data from cache
+                umap_df = seurat_data["umap"]
                 fig = generate_umap(umap_df.loc[selected_cells], color=barcodes_color, shape=barcodes_shape)
                 plot_figures.append(
                     html.Div(
@@ -483,7 +482,7 @@ def register_callbacks(app):
 
             elif plot_type == "violin":
                 """Generate violin plots for each selected gene. Either split by shape filter, or all in one stack."""
-                violin_df = fetch_expression_subset( # Get gene count dataframe for selected genes and cells from the seurat data in cache
+                violin_df = fetch_expression_subset(
                     seurat_data["seurat_handle"],
                     genes=selected_genes,
                     cells=selected_cells,
@@ -520,7 +519,7 @@ def register_callbacks(app):
                     all_genes=seurat_data["genes"],
                     all_cells=seurat_data["cells"],
                 )
-                heatmap_df = fetch_expression_subset_zscores( # Get gene count dataframe for selected genes and cells from the seurat data in cache
+                heatmap_df = fetch_expression_subset_zscores(
                     seurat_data["seurat_handle"],
                     genes=heatmap_genes,
                     cells=heatmap_cells,
@@ -566,8 +565,8 @@ def register_callbacks(app):
         Input("cell-index-key", "data"),
         prevent_initial_call=True,
     )
-    def mark_plot_update_pending(_filter_values, _plot_type, _selected_genes, _shape_column, dataset_key, cell_index_key):
-        if not dataset_key or not cell_index_key:
+    def mark_plot_update_pending(_filter_values, _plot_type, _selected_genes, _shape_column, dataset_state_key, selection_key):
+        if not dataset_state_key or not selection_key:
             return None
 
         return {"kind": "loading"}
@@ -590,10 +589,10 @@ def register_callbacks(app):
 
         return None
 
-    register_offcanvas_callbacks(app, cache)
+    register_offcanvas_callbacks(app, state)
 
 
-def register_offcanvas_callbacks(app, cache):
+def register_offcanvas_callbacks(app, state):
     """Stuff relating to the offcanvas drawers for filters and config upload."""
 
     @app.callback(
@@ -603,16 +602,16 @@ def register_offcanvas_callbacks(app, cache):
         State("gene-selector", "value"),
         Input("config-store", "data"),
     )
-    def update_gene_selection(dataset_key, selected_genes, config_data):
+    def update_gene_selection(dataset_state_key, selected_genes, config_data):
         """
         Update the gene selector drop-down based on the selected dataset. Validates the currently selected genes
         against the new options and resets selection if they are no longer valid.
         
-        :param dataset_key: Description
+        :param dataset_state_key: Opaque browser key for the current server-side dataset state.
         :param selected_genes: Description
         """
         try:
-            seurat_data = cache.get(dataset_key)
+            seurat_data = state.get_dataset(dataset_state_key)
             gene_names = seurat_data["genes"]
             gene_labels = seurat_data.get("gene_labels", {})
             gene_options = [{"label": gene_labels.get(gene, gene), "value": gene} for gene in gene_names]
@@ -639,9 +638,9 @@ def register_offcanvas_callbacks(app, cache):
         Input("filter-schema-store", "data"),
         State("cell-index-key", "data"),
     )
-    def update_cell_selection(filters_cells, filters_ids, color_column, shape_column, dataset_key, schema, current_cell_index_key):
+    def update_cell_selection(filters_cells, filters_ids, color_column, shape_column, dataset_state_key, schema, current_selection_key):
         try:
-            metadata_df = cache.get(dataset_key)["metadata"]  # Get metadata data from seurat data in the cache.
+            metadata_df = state.get_dataset(dataset_state_key)["metadata"]
             selected_cells = metadata_df.index  # Default to all cell types
         except TypeError:
             return no_update
@@ -663,14 +662,12 @@ def register_offcanvas_callbacks(app, cache):
         color_barcodes = metadata_df.loc[selected_cells, color_column] if color_column else None  # Series or None
         shape_barcodes = metadata_df.loc[selected_cells, shape_column] if shape_column else None  # Series or None
 
-        selection_id = str(uuid.uuid4())  # generate a random ID for the selection we're about to store
-        cache.set(
-            selection_id, {"cells": list(selected_cells), "color": color_barcodes, "shape": shape_barcodes}, timeout=None
-        )  # store it in the cache, timeout=None or 0 => use default (=> no expiry)
-        if current_cell_index_key and current_cell_index_key != selection_id:
-            cache.delete(current_cell_index_key)
+        selection_key = str(uuid.uuid4())  # opaque key for the server-side selection state
+        state.put_selection(selection_key, {"cells": list(selected_cells), "color": color_barcodes, "shape": shape_barcodes})
+        if current_selection_key and current_selection_key != selection_key:
+            state.delete_selection(current_selection_key)
 
-        return selection_id
+        return selection_key
 
     @app.callback(
         Output({"type": "color-control", "name": ALL}, "value"),
