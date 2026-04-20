@@ -88,13 +88,7 @@ ro.r("""
             sample.int(1e9, 1)
         )
 
-        .seurat_registry[[handle]] <- list(
-            matrix = mat,
-            metadata = metadata,
-            umap = umap,
-            genes = genes,
-            cells = cells
-        )
+        .seurat_registry[[handle]] <- list(matrix = mat)
 
         rm(obj)
  

@@ -178,8 +178,8 @@ def register_callbacks(app):
         if not str(abs_path).startswith(str(str_path)):  # prevent path traversal
             raise ValueError(f"Invalid path selection - {abs_path}")
         dataset_key = str(uuid.uuid4())  # generate a random ID for the dataset we're about to load
-        # TODO: Would be nice with persistent caching here, so that we do not re-load if the user re-selects a dataset...
-        # And/or clearing the cache so we don't use too much memory over time.
+        # Keep Python-native dataset state in the Flask cache while the R registry
+        # owns the expression matrix for lazy subsetting.
         try:
             st = abs_path.stat()
             data_dfs = load_seurat_rds(abs_path)  # Don't send this object to the browser
@@ -191,9 +191,7 @@ def register_callbacks(app):
                 cache.delete(current_dataset_key)
             if current_cell_index_key:
                 cache.delete(current_cell_index_key)
-            cache.set(
-                dataset_key, data_dfs, timeout=None
-            )  # store big data_dfs in the cache, timeout=None or 0 => use default (=> no expiry)
+            cache.set(dataset_key, data_dfs, timeout=None)
             filter_schema = filter_from_metadata(data_dfs["metadata"])
             return (
                 dataset_key,
@@ -660,9 +658,8 @@ def register_offcanvas_callbacks(app, cache):
         cache.set(
             selection_id, {"cells": list(selected_cells), "color": color_barcodes, "shape": shape_barcodes}, timeout=None
         )  # store it in the cache, timeout=None or 0 => use default (=> no expiry)
-        # TODO: I'm guessing we may have a memory leak here if the user keeps changing selections a lot?
-        # Every time we create a new selection_id we store it in the cache, but never delete old ones.
-        # I'm currently wiping the cache every time the user loads a new dataset. That helps.
+        # Cell selections are Python-side derived state; the R registry is only for
+        # the loaded expression matrix handle.
 
         return selection_id
 
