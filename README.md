@@ -57,14 +57,13 @@ Install the app in a virtual environment:
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate
-pip install -e .
+.venv/bin/python -m pip install -e .
 ```
 
 Alternative install from `requirements.txt`:
 
 ```bash
-pip install -r requirements.txt
+.venv/bin/python -m pip install -r requirements.txt
 ```
 
 Note: `rpy2` depends on a working R installation and may fail to install if R is missing or not visible in your environment.
@@ -74,13 +73,13 @@ Note: `rpy2` depends on a working R installation and may fail to install if R is
 The packaged CLI entrypoint is:
 
 ```bash
-dash-app --rds-path /path/to/seurat/files
+.venv/bin/dash-app --rds-path /path/to/seurat/files
 ```
 
 Useful options:
 
 ```bash
-dash-app --rds-path /path/to/seurat/files --ip 127.0.0.1 --port 8050 --debug
+.venv/bin/dash-app --rds-path /path/to/seurat/files --ip 127.0.0.1 --port 8050 --debug
 ```
 
 Available CLI options:
@@ -109,7 +108,7 @@ Example:
 export DATASCOPE_RDS_PATH=/data/seurat
 export DATASCOPE_PORT=8052
 export DATASCOPE_TOKEN=my-token
-dash-app
+.venv/bin/dash-app
 ```
 
 ### Config File
@@ -117,7 +116,7 @@ dash-app
 You can pass a YAML or JSON config file:
 
 ```bash
-dash-app --config path/to/config.yaml
+.venv/bin/dash-app --config path/to/config.yaml
 ```
 
 Example YAML:
