@@ -13,6 +13,8 @@ DATASCOPE_TOKEN = os.environ.get("DATASCOPE_TOKEN", secrets.token_hex(32))  # 64
 # Other Settings
 RDS_ALLOWED_EXT = {".rds", ".rda", ".rdata"}  # Allowed file extensions
 
+categorical_unique_threshold = 50  # Max unique values before integer/object metadata stop being categorical filters
+
 max_features = 60  # Maximum number of features to plot at once (in violin plots, etc.)
 max_ticks_x = 100  # Maximum number of ticks to show on x-axis (e.g. for heatmap plots with many categories)
 max_ticks_y = 50  # Maximum number of ticks to show on y-axis (e.g. for heatmap plots with many genes)

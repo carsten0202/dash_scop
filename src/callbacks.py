@@ -110,6 +110,14 @@ def _figure_json_to_svg_bytes(figure_json):
     return pio.to_image(fig, format="svg")
 
 
+def _config_categorical_threshold(config_data):
+    filter_settings = (config_data or {}).get("filter_settings") or {}
+    threshold = filter_settings.get("categorical_unique_threshold")
+    if isinstance(threshold, int) and threshold > 0:
+        return threshold
+    return settings.categorical_unique_threshold
+
+
 
 def register_callbacks(app):
     if not hasattr(app.server, "app_state"):
@@ -153,7 +161,6 @@ def register_callbacks(app):
 
     @app.callback(
         Output("dataset-key", "data"),
-        Output("filter-schema-store", "data"),
         Output("plot-selector", "disabled"),
         Output("load-message", "children"),
         Input("file-dropdown", "value"),
@@ -187,10 +194,8 @@ def register_callbacks(app):
             if current_selection_key:
                 state.delete_selection(current_selection_key)
             state.put_dataset(dataset_state_key, data_dfs)
-            filter_schema = filter_from_metadata(data_dfs["metadata"])
             return (
                 dataset_state_key,
-                filter_schema,  # filter schema from metadata
                 False,  # Enable plot selector after file load
                 dbc.Alert(
                     [
@@ -204,7 +209,23 @@ def register_callbacks(app):
                 ),
             )
         except Exception as e:
-            return no_update, no_update, no_update, dbc.Alert(f"Failed to load: {e}", color="danger", dismissable=True)
+            return no_update, no_update, dbc.Alert(f"Failed to load: {e}", color="danger", dismissable=True)
+
+    @app.callback(
+        Output("filter-schema-store", "data"),
+        Input("dataset-key", "data"),
+        Input("config-store", "data"),
+    )
+    def update_filter_schema(dataset_state_key, config_data):
+        try:
+            metadata_df = state.get_dataset(dataset_state_key)["metadata"]
+        except TypeError:
+            return []
+
+        return filter_from_metadata(
+            metadata_df,
+            categorical_unique_threshold=_config_categorical_threshold(config_data),
+        )
 
     @app.callback(
         Output("file-list", "data"),
@@ -315,6 +336,7 @@ def register_callbacks(app):
         State("shape-column-name", "data"),
         State("file-dropdown", "value"),
         State("filter-schema-store", "data"),
+        State("config-store", "data"),
         prevent_initial_call=True,
     )
     def save_config_yaml(
@@ -326,6 +348,7 @@ def register_callbacks(app):
         shape_col,
         rel_dataset,
         filter_schema,
+        config_data,
     ):
         if not n_clicks:
             return no_update
@@ -350,6 +373,9 @@ def register_callbacks(app):
             "genes": {
                 "values": selected_genes or [],
                 "id_type": "auto",
+            },
+            "filter_settings": {
+                "categorical_unique_threshold": _config_categorical_threshold(config_data),
             },
             "filters": filters,
             "encoding": {"color_by": color_col, "shape_by": shape_col},
@@ -629,7 +655,8 @@ def register_offcanvas_callbacks(app, state):
             return no_update
 
         # Validate color/shape columns against schema (Schema may be changed if user re-loaded dataset)
-        schema_names = [s["name"] for s in schema]
+        schema_by_name = {s["name"]: s for s in (schema or [])}
+        schema_names = list(schema_by_name)
         if color_column not in schema_names:
             color_column = None
         if shape_column not in schema_names:
@@ -638,7 +665,15 @@ def register_offcanvas_callbacks(app, state):
         for f, id_ in zip(filters_cells, filters_ids, strict=True):
             if not f:
                 continue
-            selected_indices = metadata_df.index[metadata_df[id_["name"]].isin(f)]
+            column_name = id_["name"]
+            filter_def = schema_by_name.get(column_name, {})
+            filter_type = filter_def.get("type", "categorical")
+            series = metadata_df[column_name]
+
+            if filter_type == "numeric_range" and isinstance(f, list) and len(f) == 2:
+                selected_indices = metadata_df.index[series.between(f[0], f[1], inclusive="both")]
+            else:
+                selected_indices = metadata_df.index[series.isin(f)]
             selected_cells = selected_cells.intersection(selected_indices)
             if selected_cells.empty:
                 break

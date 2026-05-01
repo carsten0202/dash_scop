@@ -1,5 +1,6 @@
 import base64
 import json
+import math
 import os
 from pathlib import Path
 
@@ -9,6 +10,7 @@ import pandas as pd
 import plotly.express as px
 import rpy2.robjects as ro
 import yaml
+from pandas.api.types import is_bool_dtype, is_float_dtype, is_integer_dtype, is_object_dtype, is_string_dtype
 from rpy2.robjects import pandas2ri
 from rpy2.robjects.conversion import localconverter
 
@@ -67,26 +69,121 @@ def fetch_expression_subset_zscores(
 
 
 # -------------------------------------------------------------------
+def _slider_step(series: pd.Series):
+    clean = series.dropna()
+    if clean.empty:
+        return 1
+
+    if is_integer_dtype(series):
+        return 1
+
+    span = float(clean.max()) - float(clean.min())
+    if span <= 0:
+        return 0.01
+
+    rough = span / 100
+    magnitude = 10 ** math.floor(math.log10(rough)) if rough > 0 else 0.01
+    step = round(rough / magnitude) * magnitude
+    return step if step > 0 else 0.01
+# -------------------------------------------------------------------
+
+
+# -------------------------------------------------------------------
+def _normalize_slider_bound(value):
+    numeric = float(value)
+    if numeric.is_integer():
+        return int(numeric)
+    return numeric
+# -------------------------------------------------------------------
+
+
+# -------------------------------------------------------------------
+def _numeric_range_payload(series: pd.Series, step):
+    min_value = _normalize_slider_bound(series.min())
+    max_value = _normalize_slider_bound(series.max())
+    return {
+        "min": min_value,
+        "max": max_value,
+        "step": step,
+        "marks": _slider_marks(min_value, max_value),
+        "default": [min_value, max_value],
+    }
+# -------------------------------------------------------------------
+
+
+# -------------------------------------------------------------------
+def _slider_marks(min_value, max_value):
+    def _format(value):
+        if isinstance(value, float):
+            return f"{value:.4g}"
+        return str(value)
+
+    marks = {min_value: _format(min_value)}
+    if max_value != min_value:
+        marks[max_value] = _format(max_value)
+    return marks
+# -------------------------------------------------------------------
+
+
+# -------------------------------------------------------------------
 # Helper to build the filter schema from the metadata
-def filter_from_metadata(metadata_df):
+def filter_from_metadata(metadata_df, categorical_unique_threshold=None):
+    threshold = (
+        settings.categorical_unique_threshold
+        if categorical_unique_threshold is None
+        else categorical_unique_threshold
+    )
     filter_schema = []
-    for series in [metadata_df[c] for c in metadata_df.columns]:  # Loop over series in metadata data frame
-        if series.dtype in ["category"]: # Note that some types convert to category in data_loader.py
+    for col in metadata_df.columns:
+        series = metadata_df[col]
+        non_null = series.dropna()
+        nunique = non_null.nunique()
+
+        if nunique <= 1:
+            continue
+
+        if is_bool_dtype(series):
             f = {
                 "name": series.name,
                 "label": series.name,
                 "type": "categorical",
-                "values": sorted(series.unique()),
+                "values": sorted(non_null.unique().tolist()),
                 "default": [],  # empty means "no filter selected"
             }
-        elif series.dtype in ["int64", "float64", "int32", "float32"]:
+        elif is_integer_dtype(series):
+            if nunique <= threshold:
+                f = {
+                    "name": series.name,
+                    "label": series.name,
+                    "type": "categorical",
+                    "values": sorted(non_null.unique().tolist()),
+                    "default": [],
+                }
+            else:
+                f = {
+                    "name": series.name,
+                    "label": series.name,
+                    "type": "numeric_range",
+                    **_numeric_range_payload(non_null, step=1),
+                }
+        elif is_float_dtype(series):
             f = {
                 "name": series.name,
                 "label": series.name,
                 "type": "numeric_range",
-                "min": int(series.min()),
-                "max": int(series.max()),
-                "step": 100,
+                **_numeric_range_payload(
+                    non_null,
+                    step=_slider_step(non_null),
+                ),
+            }
+        elif pd.api.types.is_categorical_dtype(series) or is_object_dtype(series) or is_string_dtype(series):
+            if nunique > threshold:
+                continue
+            f = {
+                "name": series.name,
+                "label": series.name,
+                "type": "categorical",
+                "values": sorted(non_null.unique().tolist()),
                 "default": [],
             }
         else:
@@ -256,7 +353,7 @@ def parse_upload(contents: str, filename: str):
         if not isinstance(data, dict):
             raise ValueError("Config file must contain a mapping/object")
 
-        allowed_top_level = {"version", "dataset", "genes", "filters", "encoding"}
+        allowed_top_level = {"version", "dataset", "genes", "filters", "encoding", "filter_settings"}
         unknown_keys = set(data) - allowed_top_level
         if unknown_keys:
             raise ValueError(f"Unknown top-level keys: {', '.join(sorted(unknown_keys))}")
@@ -327,6 +424,22 @@ def parse_upload(contents: str, filename: str):
                 else:
                     raise ValueError(f"filters.{filter_name}.type must be categorical or numeric_range")
             normalized["filters"] = normalized_filters
+
+        filter_settings = data.get("filter_settings")
+        if filter_settings is not None:
+            if not isinstance(filter_settings, dict):
+                raise ValueError("filter_settings must be an object")
+            unknown_filter_settings_keys = set(filter_settings) - {"categorical_unique_threshold"}
+            if unknown_filter_settings_keys:
+                raise ValueError(
+                    f"Unknown filter_settings keys: {', '.join(sorted(unknown_filter_settings_keys))}"
+                )
+            threshold = filter_settings.get("categorical_unique_threshold", settings.categorical_unique_threshold)
+            if not isinstance(threshold, int) or threshold <= 0:
+                raise ValueError("filter_settings.categorical_unique_threshold must be a positive integer")
+            normalized["filter_settings"] = {
+                "categorical_unique_threshold": threshold,
+            }
 
         encoding = data.get("encoding")
         if encoding is not None:

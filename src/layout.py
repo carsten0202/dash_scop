@@ -261,11 +261,11 @@ def make_filter_component(f):
                     min=f["min"],
                     max=f["max"],
                     step=f["step"],
+                    marks=f.get("marks"),
                     value=f.get("default", [f["min"], f["max"]]),
                     tooltip={"always_visible": False, "placement": "bottom"},
                 ),
             ],
-            className="d-none",  # FIX: Hide numeric filters for now, until supported
             style={"marginBottom": "1.5rem"},
         )
 
